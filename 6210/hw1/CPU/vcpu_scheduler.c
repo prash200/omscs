@@ -245,6 +245,6 @@ int main()
     virConnectPtr connection = virConnectOpen("qemu:///system");
 
     struct DomainArray domain_array;
-    getDomainArray(connection, &domain_array);
+    getActiveDomains(connection, &domain_array);
 	getNpCpus(connection);
 }
