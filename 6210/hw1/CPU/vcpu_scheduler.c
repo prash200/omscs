@@ -46,10 +46,16 @@ struct VCpu
 };
 
 //  Gets an array of active domains
-int getActiveDomains(virConnectPtr connection, struct DomainArray *domain_array)
+void getActiveDomains(virConnectPtr connection, struct DomainArray *domain_array)
 {
-    virDomainPtr *domains;
+	TRACE("getActiveDomains called\n");
+	TRACE("connection = %p\n", connection);
+	TRACE("domain_array = %p\n", domain_array);
+
+    virDomainPtr *domains = NULL;
     int n_domains = virConnectListAllDomains(connection, &domains, VIR_CONNECT_LIST_DOMAINS_ACTIVE | VIR_CONNECT_LIST_DOMAINS_RUNNING);
+    TRACE("domains = %p\n", domains);
+	TRACE("domains = %d\n", n_domains);
 
     if (n_domains == 0)
     {
@@ -59,17 +65,16 @@ int getActiveDomains(virConnectPtr connection, struct DomainArray *domain_array)
 
     domain_array->domains = domains;
     domain_array->n_domains = n_domains;
-
-    TRACE("No of active domains = %d\n", n_domains);
-
-    return n_domains;
 }
 
 // Gets number of pCpus
 unsigned int getNpCpus(virConnectPtr connection)
 {
+	TRACE("connection = %p\n", connection);
     virNodeInfo info;
     virNodeGetInfo(connection, &info);
+	TRACE("n_pCpus = %ud", info.cpus);
+
     return info.cpus;
 }
 
@@ -239,6 +244,7 @@ int main()
 {
     virConnectPtr connection = virConnectOpen("qemu:///system");
 
-    struct DomainArray *domain_array;
-    getDomainArray(connection, domain_array);
+    struct DomainArray domain_array;
+    getDomainArray(connection, &domain_array);
+	getNpCpus(connection);
 }
