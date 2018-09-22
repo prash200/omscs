@@ -121,7 +121,7 @@ void getPCpuStats(virConnectPtr connection, struct PCpuStatsArray *pCpus_stats)
             if (virNodeGetCPUStats(connection, cpu_no, params, &n_params, 0) == 0)
             {
                 unsigned long long load = 0;
-                for (int i = 0; i < n_params; i++)
+                for (int i = 0; i < n_params; ++i)
                 {
                     if (strcmp(params[i].field, VIR_NODE_CPU_STATS_USER) == 0 || strcmp(params[i].field, VIR_NODE_CPU_STATS_KERNEL) == 0)
                     {
@@ -135,6 +135,7 @@ void getPCpuStats(virConnectPtr connection, struct PCpuStatsArray *pCpus_stats)
 				pCpu_stats[cpu_no].pCpu_id = cpu_no;
 				pCpu_stats[cpu_no].load = load;
             }
+
             free(params);
         }
     }
@@ -143,108 +144,37 @@ void getPCpuStats(virConnectPtr connection, struct PCpuStatsArray *pCpus_stats)
 	pCpus_stats->n_pCpus = pcpu_info.cpus;
 }
 
+//  Gets vCPU stats
+void getVCpuStats(DomainArray *active_domains, struct vCpuStatsArray *vCpus_stats)
+{
+    TRACE("getVCpuStats called\n");
+    TRACE("active_domains = %p\n", active_domains);
+	TRACE("vCpus_stats = %p\n", vCpus_stats);
+
+	// Assuming only one vCPU per VM
+	struct VCpuStats *vCpu_stats = malloc(sizeof(struct VCpuStats) * active_domains->n_domains);
+	TRACE("vCpu_stats = %p\n", vCpu_stats);
+
+	for (int i = 0 ; i < active_domains->n_domains ; ++i)
+	{
+		// Assuming only one vCPU per VM
+		virVcpuInfoPtr info = (virVcpuInfoPtr)malloc(sizeof(virVcpuInfo));
+		virDomainGetVcpus(active_domains->domains[i], info, 1, NULL, 0);
+
+		TRACE("info->number = %d, info->cputime = %llu, info->state = %d, info->cpu = %d", info->number, info->cputime, info->state, info->cpu);
+
+		vCpu_stats[i].domain = active_domains->domains[i];
+		vCpu_stats[i].load = info->cputime;
+		vCpu_stats[i].vCpu_id = info->number;
+
+		free (info);
+	}
+
+	vCpus_stats->vCpus_stats = vCpu_stats;
+	vCpus_stats->n_vCpus = active_domains->n_domains;
+}
+
 /*
-void setDomStats(int n_pcpus, struct DomList *dom_list, struct DomStats *dom_stats)
-{
-    virVcpuInfoPtr pcpu_info_vcpu;
-    unsigned char *cpumaps;
-    size_t len_cpumap;
-    for (int i = 0; i < dom_list->n_doms; i++) {
-        int n_vcpus = 0;
-        if ((n_vcpus = virDomainGetVcpusFlags(dom_list->doms[i], VIR_DOMAIN_AFFECT_LIVE)) == -1) {
-            printf("[ERROR] Domain status changed during calculation.\n");
-        }
-        dom_stats[i].vcpus_time = (unsigned long long *)calloc(n_vcpus, sizeof(unsigned long long));
-        dom_stats[i].pcpus = (int *)calloc(n_vcpus, sizeof(int));
-        pcpu_info_vcpu = (virVcpuInfoPtr)calloc(n_vcpus, sizeof(virVcpuInfo));
-        len_cpumap = VIR_CPU_MAPLEN(n_pcpus);
-        cpumaps = (unsigned char *)calloc(n_vcpus, len_cpumap);
-        if (virDomainGetVcpus(dom_list->doms[i], pcpu_info_vcpu, n_vcpus, cpumaps, len_cpumap) == -1) {
-            printf("[ERROR] Could not retrieve vCpus affinity pcpu_info\n");
-        }
-        for (int j = 0; j < n_vcpus; j++) {
-            dom_stats[i].vcpus_time[j] = pcpu_info_vcpu[j].cpuTime; //TODO: Consider stores vcpu time and cpu to the slot indexed by "number" field.
-            dom_stats[i].pcpus[j] = pcpu_info_vcpu[j].cpu;
-        }
-        dom_stats[i].dom = dom_list->doms[i];
-        dom_stats[i].n_vcpus = n_vcpus;
-    }
-
-    return;
-}
-
-
-double usage(unsigned long long int diff, double period)
-{
-    return diff / period * 100;
-}
-
-void clearPcpuUsage(double *pcpu_usage, int n_pcpus)
-{
-    for (int i = 0; i < n_pcpus; i++)
-    {
-        pcpu_usage[i] = 0.0;
-    }
-
-    return;
-}
-
-void vcpuPin(double *pcpu_usage, int n_pcpus, struct DomStats *cur_dom_stats, struct DomStats *prev_dom_stats, int n_doms, double period) {
-    int busiest_cpu;
-    int freest_cpu;
-    double busiest_usage = 0.0;
-    double freest_usage = DBL_MAX;
-    for (int i = 0; i < n_pcpus; i++) {
-        if (pcpu_usage[i] > busiest_usage) {
-            busiest_usage = pcpu_usage[i];
-            busiest_cpu = i;
-        }
-        if (pcpu_usage[i] < freest_usage) {
-            freest_usage = pcpu_usage[i];
-            freest_cpu = i;
-        }
-    }
-    size_t len_cpumap = VIR_CPU_MAPLEN(n_pcpus);
-    unsigned char determ_cpumap = 0x1;
-    if ((busiest_usage - freest_usage) < DIFF_THRESHOLD) {
-        printf("Balanced enough for diff threshold = %f.No need to change pinning, making deterministic pinning...\n", DIFF_THRESHOLD);
-        for (int i = 0; i < n_doms; i++) {
-            for (int j = 0; j < cur_dom_stats[i].n_vcpus; j++) {
-                determ_cpumap = 0x1 << cur_dom_stats[i].pcpus[j];
-                virDomainPinVcpu(cur_dom_stats[i].dom, j, &determ_cpumap, len_cpumap);
-            }
-        }
-        return;
-    }
-    printf("Freest cpu %d has usage %f,\n Busiest cpu %d has usage %f.\n", freest_cpu, freest_usage,
-        busiest_cpu, busiest_usage);
-    unsigned char freest_cpumap = 0x1 << freest_cpu;
-    struct Vcpu lightest_vcpu = {0};  //TODO: check if this initializes..
-    double lightest_usage = DBL_MAX;
-    double use = 0.0;
-    for (int i = 0; i < n_doms; i++) {
-        for (int j = 0; j < cur_dom_stats[i].n_vcpus; j++) {
-            if (cur_dom_stats[i].pcpus[j] == busiest_cpu) {
-                use =  usage(cur_dom_stats[i].vcpus_time[j] -
-                             prev_dom_stats[i].vcpus_time[j], period);
-                if (use < lightest_usage) {
-                    lightest_usage = use;
-                    lightest_vcpu.dom = cur_dom_stats[i].dom;
-                    lightest_vcpu.vcpu_num = j;
-                }
-            }
-        }
-    }
-    printf("Pinning vcpu %d in domain %s to cpu %d ....\n", lightest_vcpu.vcpu_num,
-           virDomainGetName(lightest_vcpu.dom), freest_cpu);
-    if (virDomainPinVcpu(lightest_vcpu.dom, lightest_vcpu.vcpu_num, &freest_cpumap, len_cpumap) == 0) {
-        printf("Pinning finished!\n");
-    } else {
-        printf("Pinning failed!\n");
-    };
-
-    return;
-}
 
 int main(int argc, char **argv)
 {
@@ -302,6 +232,23 @@ int main(int argc, char **argv)
     printf("No active doms. Program exiting..\n");
     return 0;
 }
+
+void balanceLoad(struct VCpuStatsArray *vCpus_stats, struct PCpuStatsArray *pCpus_stats)
+{
+	heapify(pCpu_stats);
+	sort(vCpus_stats);
+
+	for (int vCpu_no = 0 ; vCpu_no < n_vCpus ; ++vCpu_no)
+	{
+		struct PCpuStats *pCpu_stats = getAndDeleteHeapMin(pCpus_stats);
+
+		unsigned char pcup_map = 0x1 << pCpu_stats->pCpu_id;
+		virDomainPinVcpu(vCpu_stats[vCpu_no].domain, vCpu_stats[vCpu_no].vCpu_id, &pcup_map, VIR_CPU_MAPLEN(pCpu_stats->n_pCpus));
+
+		pCpu_stats->load += vCpu_stats[vCpu_no].load;
+		insertHeap(pCpus_stats, pCpu_stats);
+	}
+}
 */
 
 int main()
@@ -310,6 +257,13 @@ int main()
 
     struct DomainArray active_domains;
     struct PCpuStatsArray pCpus_stats;
+	struct VCpuStatsArray vCpus_stats;
+
     getActiveDomains(connection, &active_domains);
     getPCpuStats(connection, &pCpus_stats);
+	getVCpuStats(&active_domains, &vCpus_stats);
+
+	//balanceLoad(&vCpus_stats, &pCpus_stats);
+
+	return 0;
 }
