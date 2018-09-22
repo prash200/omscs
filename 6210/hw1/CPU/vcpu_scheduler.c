@@ -132,8 +132,8 @@ void getPCpuStats(virConnectPtr connection, struct PCpuStatsArray *pCpus_stats)
 
 				TRACE("load = %llu\n", load);
 
-				pCpu_stats[cpu_no]->pCpu_id = cpu_no;
-				pCpu_stats[cpu_no]->load = load;
+				pCpu_stats[cpu_no].pCpu_id = cpu_no;
+				pCpu_stats[cpu_no].load = load;
             }
             free(params);
         }
