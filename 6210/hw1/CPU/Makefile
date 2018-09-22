@@ -5,7 +5,7 @@ release: vcpu_scheduler.c
 	$(CC) -o ./vcpu_scheduler ./vcpu_scheduler.c $(CFLAGS)
 
 debug:
-    $(CC) -o ./vcpu_scheduler ./vcpu_scheduler.c $(CFLAGS) -DDEBUG
+	$(CC) -o ./vcpu_scheduler ./vcpu_scheduler.c $(CFLAGS) -DDEBUG
 	
 clean:
 	rm -f ./vcpu_scheduler
