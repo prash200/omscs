@@ -23,58 +23,56 @@ struct DomainArray
     int n_domains;
 };
 
+// Represents pCPU stats
+struct PCpuStats
+{
+    // pCPU id
+    int pCpu_id;
+    // load on pCPU
+    unsigned long long load;
+};
+
+// Represents a pCPU stats Array
+struct PCpuStatsArray
+{
+    // Pointer to an array of pCPUs
+    struct PCpuStats *pCpus_stats;
+    // No. of pCPUs
+    int n_pCpus;
+};
+
 // Represents vCPU
-struct VCpu
+struct VCpuStats
 {
     // Domian pointer
     virDomainPtr domain;
     // vCPU id
     int vCpu_id;
-	// pinned pCPU
-	int pCpu_id;
-	// load on vCPU
-	unsigned long long load;
+    // load on vCPU
+    unsigned long long load;
 };
 
 // Represents a vCPU Array
-struct VCpuArray
+struct VCpuStatsArray
 {
-	// Pointer to an array of vCPUs
-	struct VCpu *vCpus;
+    // Pointer to an array of vCPUs
+    struct VCpuStats *vCpus_stats;
     // No. of vCPUs
     int n_vCpus;
-};
-
-// Represents pCPU
-struct PCpu
-{
-	// pCPU id
-	int pCpu_id;
-	// load on pCPU
-	unsigned long long load;
-};
-
-// Represents a pCPU Array
-struct PCpuArray
-{
-	// Pointer to an array of pCPUs
-	struct PCpu *pCpus;
-    // No. of pCPUs
-    int n_pCpus;
 };
 
 //  Gets an array of active domains
 void getActiveDomains(virConnectPtr connection, struct DomainArray *domain_array)
 {
-	TRACE("getActiveDomains called\n");
-	TRACE("connection = %p\n", connection);
-	TRACE("domain_array = %p\n", domain_array);
+    TRACE("getActiveDomains called\n");
+    TRACE("connection = %p\n", connection);
+    TRACE("domain_array = %p\n", domain_array);
 
     virDomainPtr *domains = NULL;
     int n_domains = virConnectListAllDomains(connection, &domains, VIR_CONNECT_LIST_DOMAINS_ACTIVE | VIR_CONNECT_LIST_DOMAINS_RUNNING);
 
     TRACE("domains = %p\n", domains);
-	TRACE("domains = %d\n", n_domains);
+    TRACE("domains = %d\n", n_domains);
 
     if (n_domains == 0)
     {
@@ -86,56 +84,69 @@ void getActiveDomains(virConnectPtr connection, struct DomainArray *domain_array
     domain_array->n_domains = n_domains;
 }
 
-void pCpuSample(virConnectPtr connection)
+//  Gets pCPU stats
+void getPCpuStats(virConnectPtr connection, struct PCpuStatsArray *pCpus_stats)
 {
-	TRACE("pCpuSample called\n");
-	TRACE("connection = %p\n", connection);
+    TRACE("getPCpuStats called\n");
+    TRACE("connection = %p\n", connection);
+	TRACE("pCpus_stats = %p\n", pCpus_stats);
 
-    virNodeInfo info;
-    virNodeGetInfo(connection, &info);
+    virNodeInfo pcpu_info;
+    virNodeGetInfo(connection, &pcpu_info);
 
-	TRACE("n_pCpus = %u\n", info.cpus);
+    TRACE("n_pCpus = %u\n", pcpu_info.cpus);
 
-	for (int cpu_no = 0 ; cpu_no < info.cpus ; ++cpu_no)
-	{
-		TRACE("cpu_no = %d\n", cpu_no);
+	struct PCpuStats *pCpu_stats = malloc(sizeof(struct PCpuStats) * pcpu_info.cpus);
 
-		int no_params = 0;
-		if (virNodeGetCPUStats(connection, cpu_no, NULL, &no_params, 0) == 0 && no_params != 0)
-		{
-			TRACE("no_params = %d\n", no_params);
-			virNodeCPUStats *params = malloc(sizeof(virNodeCPUStats) * no_params);
-			TRACE("params = %p\n", params);
+	TRACE("pCpu_stats = %p\n", pCpu_stats);
 
-			if (params != NULL)
-			{
-				memset(params, 0, sizeof(virNodeCPUStats) * no_params);
-			}
+    for (int cpu_no = 0 ; cpu_no < pcpu_info.cpus ; ++cpu_no)
+    {
+        TRACE("cpu_no = %d\n", cpu_no);
+
+        int n_params = 0;
+        if (virNodeGetCPUStats(connection, cpu_no, NULL, &n_params, 0) == 0 && n_params != 0)
+        {
+            TRACE("n_params = %d\n", n_params);
+
+            virNodeCPUStats *params = malloc(sizeof(virNodeCPUStats) * n_params);
 			
-			if (virNodeGetCPUStats(connection, cpu_no, params, &no_params, 0) == 0)
-			{
-				TRACE("params = %p\n", params);
+            TRACE("params = %p\n", params);
 
-				unsigned long long busy_time = 0;
-				for (int i = 0; i < no_params; i++)
-				{
-					TRACE("params[%d].field = %s, params[%d].value = %llu\n", i, params[i].field, i, params[i].value);
+            if (params != NULL)
+            {
+                memset(params, 0, sizeof(virNodeCPUStats) * n_params);
+            }
+            
+            if (virNodeGetCPUStats(connection, cpu_no, params, &n_params, 0) == 0)
+            {
+                unsigned long long load = 0;
+                for (int i = 0; i < n_params; i++)
+                {
+                    if (strcmp(params[i].field, VIR_NODE_CPU_STATS_USER) == 0 || strcmp(params[i].field, VIR_NODE_CPU_STATS_KERNEL) == 0)
+                    {
+                        TRACE("params[%d].field = %s, params[%d].value = %llu\n", i, params[i].field, i, params[i].value);
+						load += params[i].value;
+                    }
+                }
 
-					if (strcmp(params[i].field, VIR_NODE_CPU_STATS_USER) == 0 || strcmp(params[i].field, VIR_NODE_CPU_STATS_KERNEL) == 0)
-					{
-						busy_time += params[i].value;
-					}
-				}				
-			}
-			free(params);
-		}
-	}
+				TRACE("load = %llu\n", load);
+
+				pCpu_stats[cpu_no]->pCpu_id = cpu_no;
+				pCpu_stats[cpu_no]->load = load;
+            }
+            free(params);
+        }
+    }
+	
+	pCpus_stats->pCpus_stats = pCpu_stats;
+	pCpus_stats->n_pCpus = pcpu_info.cpus;
 }
 
 /*
 void setDomStats(int n_pcpus, struct DomList *dom_list, struct DomStats *dom_stats)
 {
-    virVcpuInfoPtr info_vcpu;
+    virVcpuInfoPtr pcpu_info_vcpu;
     unsigned char *cpumaps;
     size_t len_cpumap;
     for (int i = 0; i < dom_list->n_doms; i++) {
@@ -145,15 +156,15 @@ void setDomStats(int n_pcpus, struct DomList *dom_list, struct DomStats *dom_sta
         }
         dom_stats[i].vcpus_time = (unsigned long long *)calloc(n_vcpus, sizeof(unsigned long long));
         dom_stats[i].pcpus = (int *)calloc(n_vcpus, sizeof(int));
-        info_vcpu = (virVcpuInfoPtr)calloc(n_vcpus, sizeof(virVcpuInfo));
+        pcpu_info_vcpu = (virVcpuInfoPtr)calloc(n_vcpus, sizeof(virVcpuInfo));
         len_cpumap = VIR_CPU_MAPLEN(n_pcpus);
         cpumaps = (unsigned char *)calloc(n_vcpus, len_cpumap);
-        if (virDomainGetVcpus(dom_list->doms[i], info_vcpu, n_vcpus, cpumaps, len_cpumap) == -1) {
-            printf("[ERROR] Could not retrieve vCpus affinity info\n");
+        if (virDomainGetVcpus(dom_list->doms[i], pcpu_info_vcpu, n_vcpus, cpumaps, len_cpumap) == -1) {
+            printf("[ERROR] Could not retrieve vCpus affinity pcpu_info\n");
         }
         for (int j = 0; j < n_vcpus; j++) {
-            dom_stats[i].vcpus_time[j] = info_vcpu[j].cpuTime; //TODO: Consider stores vcpu time and cpu to the slot indexed by "number" field.
-            dom_stats[i].pcpus[j] = info_vcpu[j].cpu;
+            dom_stats[i].vcpus_time[j] = pcpu_info_vcpu[j].cpuTime; //TODO: Consider stores vcpu time and cpu to the slot indexed by "number" field.
+            dom_stats[i].pcpus[j] = pcpu_info_vcpu[j].cpu;
         }
         dom_stats[i].dom = dom_list->doms[i];
         dom_stats[i].n_vcpus = n_vcpus;
@@ -297,7 +308,8 @@ int main()
 {
     virConnectPtr connection = virConnectOpen("qemu:///system");
 
-    struct DomainArray domain_array;
-    getActiveDomains(connection, &domain_array);
-	pCpuSample(connection);
+    struct DomainArray active_domains;
+    struct PCpuStatsArray pCpus_stats;
+    getActiveDomains(connection, &active_domains);
+    getPCpuStats(connection, &pCpus_stats);
 }
