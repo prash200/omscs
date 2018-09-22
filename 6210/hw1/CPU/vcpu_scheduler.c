@@ -63,12 +63,6 @@ struct PCpuArray
     int n_pCpus;
 };
 
-// 
-int getVCpuSubsetsOfLengthLessOrEqualToN(struct VCpuArray vCpuArray, int n, int *)
-{
-	
-}
-
 //  Gets an array of active domains
 void getActiveDomains(virConnectPtr connection, struct DomainArray *domain_array)
 {
@@ -118,14 +112,14 @@ void pCpuSample(virConnectPtr connection)
 				memset(params, 0, sizeof(virNodeCPUStats) * no_params);
 			}
 			
-			if (virNodeGetCPUStats(connection, nr_cpus, params, &no_params, 0) == 0)
+			if (virNodeGetCPUStats(connection, cpu_no, params, &no_params, 0) == 0)
 			{
 				TRACE("params = %p\n", params);
 
 				unsigned long long busy_time = 0;
 				for (int i = 0; i < no_params; i++)
 				{
-					TRACE("params[%d].field = %s, params[%d].value = %ul\d\n", params[i].field, params[%d].value);
+					TRACE("params[%d].field = %s, params[%d].value = %llu\n", i, params[i].field, i, params[i].value);
 
 					if (strcmp(params[i].field, VIR_NODE_CPU_STATS_USER) == 0 || strcmp(params[i].field, VIR_NODE_CPU_STATS_KERNEL) == 0)
 					{
@@ -304,6 +298,6 @@ int main()
     virConnectPtr connection = virConnectOpen("qemu:///system");
 
     struct DomainArray domain_array;
-    getDomainArray(connection, &domain_array);
+    getActiveDomains(connection, &domain_array);
 	pCpuSample(connection);
 }
