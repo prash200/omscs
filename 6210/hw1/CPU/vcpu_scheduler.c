@@ -88,13 +88,13 @@ void getActiveDomains(virConnectPtr connection, struct DomainArray *domain_array
 
 void pCpuSample(virConnectPtr connection)
 {
-	TRACE("getNpCpus called\n");
+	TRACE("pCpuSample called\n");
 	TRACE("connection = %p\n", connection);
 
     virNodeInfo info;
     virNodeGetInfo(connection, &info);
 
-	TRACE("n_pCpus = %ud\n", info.cpus);
+	TRACE("n_pCpus = %u\n", info.cpus);
 
 	for (int cpu_no = 0 ; cpu_no < info.cpus ; ++cpu_no)
 	{
