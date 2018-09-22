@@ -19,31 +19,55 @@ struct DomainArray
 {
     // Pointer to an array of domain pointers
     virDomainPtr *domains;
-    // Number of domains in the domain
+    // No. of domains in the domain
     int n_domains;
 };
 
-// Represents stats of a domain
-struct DomainStats
-{
-    // Domain pointer
-    virDomainPtr domain;
-    // No. of vCpu in a domain
-    int n_vCpus;
-    //
-    unsigned long long *vCpus_time;
-    //
-    int *pCpus;
-};
-
-// Represents a VCpu in a domain
+// Represents vCPU
 struct VCpu
 {
     // Domian pointer
-    virDomainPtr dom;
-    // vCpu id
+    virDomainPtr domain;
+    // vCPU id
     int vCpu_id;
+	// pinned pCPU
+	int pCpu_id;
+	// load on vCPU
+	unsigned long long load;
 };
+
+// Represents a vCPU Array
+struct VCpuArray
+{
+	// Pointer to an array of vCPUs
+	struct VCpu *vCpus;
+    // No. of vCPUs
+    int n_vCpus;
+};
+
+// Represents pCPU
+struct PCpu
+{
+	// pCPU id
+	int pCpu_id;
+	// load on pCPU
+	unsigned long long load;
+};
+
+// Represents a pCPU Array
+struct PCpuArray
+{
+	// Pointer to an array of pCPUs
+	struct PCpu *pCpus;
+    // No. of pCPUs
+    int n_pCpus;
+};
+
+// 
+int getVCpuSubsetsOfLengthLessOrEqualToN(struct VCpuArray vCpuArray, int n, int *)
+{
+	
+}
 
 //  Gets an array of active domains
 void getActiveDomains(virConnectPtr connection, struct DomainArray *domain_array)
@@ -54,6 +78,7 @@ void getActiveDomains(virConnectPtr connection, struct DomainArray *domain_array
 
     virDomainPtr *domains = NULL;
     int n_domains = virConnectListAllDomains(connection, &domains, VIR_CONNECT_LIST_DOMAINS_ACTIVE | VIR_CONNECT_LIST_DOMAINS_RUNNING);
+
     TRACE("domains = %p\n", domains);
 	TRACE("domains = %d\n", n_domains);
 
@@ -67,15 +92,50 @@ void getActiveDomains(virConnectPtr connection, struct DomainArray *domain_array
     domain_array->n_domains = n_domains;
 }
 
-// Gets number of pCpus
-unsigned int getNpCpus(virConnectPtr connection)
+void pCpuSample(virConnectPtr connection)
 {
+	TRACE("getNpCpus called\n");
 	TRACE("connection = %p\n", connection);
+
     virNodeInfo info;
     virNodeGetInfo(connection, &info);
-	TRACE("n_pCpus = %ud", info.cpus);
 
-    return info.cpus;
+	TRACE("n_pCpus = %ud\n", info.cpus);
+
+	for (int cpu_no = 0 ; cpu_no < info.cpus ; ++cpu_no)
+	{
+		TRACE("cpu_no = %d\n", cpu_no);
+
+		int no_params = 0;
+		if (virNodeGetCPUStats(connection, cpu_no, NULL, &no_params, 0) == 0 && no_params != 0)
+		{
+			TRACE("no_params = %d\n", no_params);
+			virNodeCPUStats *params = malloc(sizeof(virNodeCPUStats) * no_params);
+			TRACE("params = %p\n", params);
+
+			if (params != NULL)
+			{
+				memset(params, 0, sizeof(virNodeCPUStats) * no_params);
+			}
+			
+			if (virNodeGetCPUStats(connection, nr_cpus, params, &no_params, 0) == 0)
+			{
+				TRACE("params = %p\n", params);
+
+				unsigned long long busy_time = 0;
+				for (int i = 0; i < no_params; i++)
+				{
+					TRACE("params[%d].field = %s, params[%d].value = %ul\d\n", params[i].field, params[%d].value);
+
+					if (strcmp(params[i].field, VIR_NODE_CPU_STATS_USER) == 0 || strcmp(params[i].field, VIR_NODE_CPU_STATS_KERNEL) == 0)
+					{
+						busy_time += params[i].value;
+					}
+				}				
+			}
+			free(params);
+		}
+	}
 }
 
 /*
@@ -124,8 +184,7 @@ void clearPcpuUsage(double *pcpu_usage, int n_pcpus)
     return;
 }
 
-void vcpuPin(double *pcpu_usage, int n_pcpus, struct DomStats *cur_dom_stats,
-             struct DomStats *prev_dom_stats, int n_doms, double period) {
+void vcpuPin(double *pcpu_usage, int n_pcpus, struct DomStats *cur_dom_stats, struct DomStats *prev_dom_stats, int n_doms, double period) {
     int busiest_cpu;
     int freest_cpu;
     double busiest_usage = 0.0;
@@ -246,5 +305,5 @@ int main()
 
     struct DomainArray domain_array;
     getDomainArray(connection, &domain_array);
-	getNpCpus(connection);
+	pCpuSample(connection);
 }
