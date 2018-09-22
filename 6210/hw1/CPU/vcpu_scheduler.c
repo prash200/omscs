@@ -145,7 +145,7 @@ void getPCpuStats(virConnectPtr connection, struct PCpuStatsArray *pCpus_stats)
 }
 
 //  Gets vCPU stats
-void getVCpuStats(DomainArray *active_domains, struct vCpuStatsArray *vCpus_stats)
+void getVCpuStats(struct DomainArray *active_domains, struct VCpuStatsArray *vCpus_stats)
 {
     TRACE("getVCpuStats called\n");
     TRACE("active_domains = %p\n", active_domains);
@@ -161,10 +161,10 @@ void getVCpuStats(DomainArray *active_domains, struct vCpuStatsArray *vCpus_stat
 		virVcpuInfoPtr info = (virVcpuInfoPtr)malloc(sizeof(virVcpuInfo));
 		virDomainGetVcpus(active_domains->domains[i], info, 1, NULL, 0);
 
-		TRACE("info->number = %d, info->cputime = %llu, info->state = %d, info->cpu = %d", info->number, info->cputime, info->state, info->cpu);
+		TRACE("info->number = %d, info->cputime = %llu, info->state = %d, info->cpu = %d", info->number, info->cpuTime, info->state, info->cpu);
 
 		vCpu_stats[i].domain = active_domains->domains[i];
-		vCpu_stats[i].load = info->cputime;
+		vCpu_stats[i].load = info->cpuTime;
 		vCpu_stats[i].vCpu_id = info->number;
 
 		free (info);
