@@ -161,7 +161,7 @@ void getVCpuStats(struct DomainArray *active_domains, struct VCpuStatsArray *vCp
 		virVcpuInfoPtr info = (virVcpuInfoPtr)malloc(sizeof(virVcpuInfo));
 		virDomainGetVcpus(active_domains->domains[i], info, 1, NULL, 0);
 
-		TRACE("info->number = %d, info->cputime = %llu, info->state = %d, info->cpu = %d", info->number, info->cpuTime, info->state, info->cpu);
+		TRACE("info->number = %d, info->cputime = %llu, info->state = %d, info->cpu = %d\n", info->number, info->cpuTime, info->state, info->cpu);
 
 		vCpu_stats[i].domain = active_domains->domains[i];
 		vCpu_stats[i].load = info->cpuTime;
@@ -174,8 +174,104 @@ void getVCpuStats(struct DomainArray *active_domains, struct VCpuStatsArray *vCp
 	vCpus_stats->n_vCpus = active_domains->n_domains;
 }
 
-/*
+// build min heap w.r.t. pcpu load
+void buildHeap(struct PCpuStatsArray* pCpus_stats)
+{
+	TRACE("buildMinHeap called\n");
+	tracePCpuStatsArray(pCpus_stats);
 
+	int heap_size = pCpus_stats->n_pCpus;
+    for (int j = heap_size/2 ; j >= 0 ; j--)
+	{
+        heapify(pCpus_stats->pCpus_stats, j, heap_size);
+    }
+
+	tracePCpuStatsArray(pCpus_stats);
+}
+
+// Trace pCpustats array
+void tracePCpuStatsArray(struct PCpuStatsArray* pCpus_stats)
+{
+	#ifdef DEBUG
+	for (int i = 0 ; i < pCpus_stats->n_pCpus ; ++i)
+	{
+		printf("id = %d, load = %llu\n", pCpus_stats->pCpu_stats[i].pCpu_id, pCpus_stats->pCpu_stats[i].load)
+	}
+	#endif
+}
+
+// min heapify w.r.t. pcpu load
+void heapify(struct PCpuStats *pCpu_stats, int index, int heap_size)
+{
+	TRACE("pCpu_stats = %p, index = %d, heap_size = %d\n", pCpu_stats, index, heap_size);
+
+	int left = (2*index+1);
+    if (left >= heapsize)
+	{
+        return;
+	}
+    else
+	{
+		int smallest_index = heap_size;
+        if (left < heap_size && pCpu_stats[left].load < pCpu_stats[index].load)
+		{
+            smallest_index = left;
+		}
+        else
+		{
+            smallest_index = index;
+		}
+
+        int right = ((2*index)+2);
+        if (right < heap_size && pCpu_stats[right].load < pCpu_stats[smallest_index].load)
+		{
+            smallest_index = right;
+		}
+
+        if (smallest_index != index)
+		{
+            struct PCpuStats temp = pCpu_stats[index];
+            pCpu_stats[index] = pCpu_stats[smallest_index];
+            pCpu_stats[smallest_index] = temp;
+            heapify(pCpu_stats, smallest_index, heap_size);
+        }
+    }
+}
+
+// Sort w.r.t. vcpu load
+void sort(struct  VCpuStatsArray* vCpus_stats)
+{
+	TRACE("sort called\n");
+	traceVCpuStatsArray(vCpus_stats);
+
+	for (int i = 0 ; i < vCpus_stats->n_vCpus ; ++i)
+	{
+		for (int j = i + 1 ; j < vCpus_stats->n_vCpus ; ++j)
+		{
+			if (vCpus_stats->vCpu_stats[i].load > vCpus_stats->vCpu_stats[j].load)
+			{
+				VCpuStats temp = vCpus_stats->vCpu_stats[i];
+				vCpus_stats->vCpu_stats[i] = vCpus_stats->vCpu_stats[j];
+				vCpus_stats->vCpu_stats[j] = temp;
+			}
+		}
+	}
+
+	traceVCpuStatsArray(vCpus_stats);
+}
+
+// Trace vCpustats array
+void traceVCpuStatsArray(struct VCpuStatsArray* vCpus_stats)
+{
+	#ifdef DEBUG
+	for (int i = 0 ; i < vCpus_stats->n_vCpus ; ++i)
+	{
+		printf("id = %d, load = %llu\n", vCpus_stats->vCpu_stats[i].vCpu_id, vCpus_stats->vCpu_stats[i].load)
+	}
+	#endif
+}
+
+/*
 int main(int argc, char **argv)
 {
     if (argc != 2) {
@@ -232,24 +328,26 @@ int main(int argc, char **argv)
     printf("No active doms. Program exiting..\n");
     return 0;
 }
+*/
 
 void balanceLoad(struct VCpuStatsArray *vCpus_stats, struct PCpuStatsArray *pCpus_stats)
 {
-	heapify(pCpu_stats);
+	buildHeap(pCpu_stats);
 	sort(vCpus_stats);
 
-	for (int vCpu_no = 0 ; vCpu_no < n_vCpus ; ++vCpu_no)
+	/*
+	for (int i = 0 ; i < n_vCpus ; ++i)
 	{
 		struct PCpuStats *pCpu_stats = getAndDeleteHeapMin(pCpus_stats);
 
 		unsigned char pcup_map = 0x1 << pCpu_stats->pCpu_id;
-		virDomainPinVcpu(vCpu_stats[vCpu_no].domain, vCpu_stats[vCpu_no].vCpu_id, &pcup_map, VIR_CPU_MAPLEN(pCpu_stats->n_pCpus));
+		virDomainPinVcpu(vCpu_stats[i].domain, vCpu_stats[i].vCpu_id, &pcup_map, VIR_CPU_MAPLEN(pCpu_stats->n_pCpus));
 
-		pCpu_stats->load += vCpu_stats[vCpu_no].load;
+		pCpu_stats->load += vCpu_stats[i].load;
 		insertHeap(pCpus_stats, pCpu_stats);
 	}
+	*/
 }
-*/
 
 int main()
 {
@@ -263,7 +361,7 @@ int main()
     getPCpuStats(connection, &pCpus_stats);
 	getVCpuStats(&active_domains, &vCpus_stats);
 
-	//balanceLoad(&vCpus_stats, &pCpus_stats);
+	balanceLoad(&vCpus_stats, &pCpus_stats);
 
 	return 0;
 }
