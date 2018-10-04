@@ -270,7 +270,7 @@ void buildHeap(struct PCpuStatsArray* pCpus_stats)
 }
 
 // Delete min value from the heap
-int deleteHeapMin(struct PCpuStatsArray* pCpus_stats)
+void deleteHeapMin(struct PCpuStatsArray* pCpus_stats)
 {
     TRACE("extractMinIndex called\n");
     tracePCpuStatsArray(pCpus_stats);
@@ -287,10 +287,10 @@ int deleteHeapMin(struct PCpuStatsArray* pCpus_stats)
         return;
     }
     
-    struct PCpuStats temp = pCpu_stats->pCpu_stats[0];
-    pCpu_stats->pCpu_stats[0] = pCpu_stats->pCpu_stats[heap_size-1];
-    pCpu_stats->pCpu_stats[heap_size-1] = temp;
-    bubbleDownHeap(pCpu_stats, 0, heap_size-1);
+    struct PCpuStats temp = pCpus_stats->pCpus_stats[0];
+    pCpus_stats->pCpus_stats[0] = pCpus_stats->pCpus_stats[heap_size-1];
+    pCpus_stats->pCpus_stats[heap_size-1] = temp;
+    bubbleDownHeap(pCpus_stats, 0, heap_size-1);
     
     tracePCpuStatsArray(pCpus_stats);
 }
