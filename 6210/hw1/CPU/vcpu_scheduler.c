@@ -67,7 +67,7 @@ void tracePCpuStatsArray(struct PCpuStatsArray* pCpus_stats)
 	#ifdef DEBUG
 	for (int i = 0 ; i < pCpus_stats->n_pCpus ; ++i)
 	{
-		printf("id = %d, load = %llu\n", pCpus_stats->pCpus_stats[i].pCpu_id, pCpus_stats->pCpus_stats[i].load)
+		printf("id = %d, load = %llu\n", pCpus_stats->pCpus_stats[i].pCpu_id, pCpus_stats->pCpus_stats[i].load);
 	}
 	#endif
 }
@@ -78,7 +78,7 @@ void traceVCpuStatsArray(struct VCpuStatsArray* vCpus_stats)
 	#ifdef DEBUG
 	for (int i = 0 ; i < vCpus_stats->n_vCpus ; ++i)
 	{
-		printf("id = %d, load = %llu\n", vCpus_stats->vCpus_stats[i].vCpu_id, vCpus_stats->vCpus_stats[i].load)
+		printf("id = %d, load = %llu\n", vCpus_stats->vCpus_stats[i].vCpu_id, vCpus_stats->vCpus_stats[i].load);
 	}
 	#endif
 }
@@ -196,28 +196,13 @@ void getVCpuStats(struct DomainArray *active_domains, struct VCpuStatsArray *vCp
 	vCpus_stats->n_vCpus = active_domains->n_domains;
 }
 
-// build min heap w.r.t. pcpu load
-void buildHeap(struct PCpuStatsArray* pCpus_stats)
-{
-	TRACE("buildMinHeap called\n");
-	tracePCpuStatsArray(pCpus_stats);
-
-	int heap_size = pCpus_stats->n_pCpus;
-    for (int j = heap_size/2 ; j >= 0 ; j--)
-	{
-        heapify(pCpus_stats->pCpus_stats, j, heap_size);
-    }
-
-	tracePCpuStatsArray(pCpus_stats);
-}
-
 // min heapify w.r.t. pcpu load
 void heapify(struct PCpuStats *pCpu_stats, int index, int heap_size)
 {
 	TRACE("pCpu_stats = %p, index = %d, heap_size = %d\n", pCpu_stats, index, heap_size);
 
 	int left = (2*index+1);
-    if (left >= heapsize)
+    if (left >= heap_size)
 	{
         return;
 	}
@@ -249,6 +234,21 @@ void heapify(struct PCpuStats *pCpu_stats, int index, int heap_size)
     }
 }
 
+// build min heap w.r.t. pcpu load
+void buildHeap(struct PCpuStatsArray* pCpus_stats)
+{
+	TRACE("buildMinHeap called\n");
+	tracePCpuStatsArray(pCpus_stats);
+
+	int heap_size = pCpus_stats->n_pCpus;
+    for (int j = heap_size/2 ; j >= 0 ; j--)
+	{
+        heapify(pCpus_stats->pCpus_stats, j, heap_size);
+    }
+
+	tracePCpuStatsArray(pCpus_stats);
+}
+
 // Sort w.r.t. vcpu load
 void sort(struct  VCpuStatsArray* vCpus_stats)
 {
@@ -261,7 +261,7 @@ void sort(struct  VCpuStatsArray* vCpus_stats)
 		{
 			if (vCpus_stats->vCpus_stats[i].load > vCpus_stats->vCpus_stats[j].load)
 			{
-				VCpuStats temp = vCpus_stats->vCpus_stats[i];
+				struct VCpuStats temp = vCpus_stats->vCpus_stats[i];
 				vCpus_stats->vCpus_stats[i] = vCpus_stats->vCpus_stats[j];
 				vCpus_stats->vCpus_stats[j] = temp;
 			}
