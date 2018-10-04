@@ -61,6 +61,28 @@ struct VCpuStatsArray
     int n_vCpus;
 };
 
+// Trace pCpustats array
+void tracePCpuStatsArray(struct PCpuStatsArray* pCpus_stats)
+{
+	#ifdef DEBUG
+	for (int i = 0 ; i < pCpus_stats->n_pCpus ; ++i)
+	{
+		printf("id = %d, load = %llu\n", pCpus_stats->pCpu_stats[i].pCpu_id, pCpus_stats->pCpu_stats[i].load)
+	}
+	#endif
+}
+
+// Trace vCpustats array
+void traceVCpuStatsArray(struct VCpuStatsArray* vCpus_stats)
+{
+	#ifdef DEBUG
+	for (int i = 0 ; i < vCpus_stats->n_vCpus ; ++i)
+	{
+		printf("id = %d, load = %llu\n", vCpus_stats->vCpu_stats[i].vCpu_id, vCpus_stats->vCpu_stats[i].load)
+	}
+	#endif
+}
+
 //  Gets an array of active domains
 void getActiveDomains(virConnectPtr connection, struct DomainArray *domain_array)
 {
@@ -189,17 +211,6 @@ void buildHeap(struct PCpuStatsArray* pCpus_stats)
 	tracePCpuStatsArray(pCpus_stats);
 }
 
-// Trace pCpustats array
-void tracePCpuStatsArray(struct PCpuStatsArray* pCpus_stats)
-{
-	#ifdef DEBUG
-	for (int i = 0 ; i < pCpus_stats->n_pCpus ; ++i)
-	{
-		printf("id = %d, load = %llu\n", pCpus_stats->pCpu_stats[i].pCpu_id, pCpus_stats->pCpu_stats[i].load)
-	}
-	#endif
-}
-
 // min heapify w.r.t. pcpu load
 void heapify(struct PCpuStats *pCpu_stats, int index, int heap_size)
 {
@@ -258,17 +269,6 @@ void sort(struct  VCpuStatsArray* vCpus_stats)
 	}
 
 	traceVCpuStatsArray(vCpus_stats);
-}
-
-// Trace vCpustats array
-void traceVCpuStatsArray(struct VCpuStatsArray* vCpus_stats)
-{
-	#ifdef DEBUG
-	for (int i = 0 ; i < vCpus_stats->n_vCpus ; ++i)
-	{
-		printf("id = %d, load = %llu\n", vCpus_stats->vCpu_stats[i].vCpu_id, vCpus_stats->vCpu_stats[i].load)
-	}
-	#endif
 }
 
 /*
