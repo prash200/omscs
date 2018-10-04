@@ -67,7 +67,7 @@ void tracePCpuStatsArray(struct PCpuStatsArray* pCpus_stats)
 	#ifdef DEBUG
 	for (int i = 0 ; i < pCpus_stats->n_pCpus ; ++i)
 	{
-		printf("id = %d, load = %llu\n", pCpus_stats->pCpu_stats[i].pCpu_id, pCpus_stats->pCpu_stats[i].load)
+		printf("id = %d, load = %llu\n", pCpus_stats->pCpus_stats[i].pCpu_id, pCpus_stats->pCpus_stats[i].load)
 	}
 	#endif
 }
@@ -78,7 +78,7 @@ void traceVCpuStatsArray(struct VCpuStatsArray* vCpus_stats)
 	#ifdef DEBUG
 	for (int i = 0 ; i < vCpus_stats->n_vCpus ; ++i)
 	{
-		printf("id = %d, load = %llu\n", vCpus_stats->vCpu_stats[i].vCpu_id, vCpus_stats->vCpu_stats[i].load)
+		printf("id = %d, load = %llu\n", vCpus_stats->vCpus_stats[i].vCpu_id, vCpus_stats->vCpus_stats[i].load)
 	}
 	#endif
 }
@@ -259,11 +259,11 @@ void sort(struct  VCpuStatsArray* vCpus_stats)
 	{
 		for (int j = i + 1 ; j < vCpus_stats->n_vCpus ; ++j)
 		{
-			if (vCpus_stats->vCpu_stats[i].load > vCpus_stats->vCpu_stats[j].load)
+			if (vCpus_stats->vCpus_stats[i].load > vCpus_stats->vCpus_stats[j].load)
 			{
-				VCpuStats temp = vCpus_stats->vCpu_stats[i];
-				vCpus_stats->vCpu_stats[i] = vCpus_stats->vCpu_stats[j];
-				vCpus_stats->vCpu_stats[j] = temp;
+				VCpuStats temp = vCpus_stats->vCpus_stats[i];
+				vCpus_stats->vCpus_stats[i] = vCpus_stats->vCpus_stats[j];
+				vCpus_stats->vCpus_stats[j] = temp;
 			}
 		}
 	}
