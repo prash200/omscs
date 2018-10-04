@@ -290,7 +290,7 @@ void deleteHeapMin(struct PCpuStatsArray* pCpus_stats)
     struct PCpuStats temp = pCpus_stats->pCpus_stats[0];
     pCpus_stats->pCpus_stats[0] = pCpus_stats->pCpus_stats[heap_size-1];
     pCpus_stats->pCpus_stats[heap_size-1] = temp;
-    bubbleDownHeap(pCpus_stats, 0, heap_size-1);
+    bubbleDownHeap(pCpus_stats->pCpus_stats, 0, heap_size-1);
     
     tracePCpuStatsArray(pCpus_stats);
 }
