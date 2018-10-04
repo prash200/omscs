@@ -400,8 +400,8 @@ void balanceLoad(struct VCpuStatsArray *vCpus_stats, struct PCpuStatsArray *pCpu
         struct PCpuStats pCpu_stats = pCpus_stats->pCpus_stats[0];
 		deleteHeapMin(pCpus_stats);
 
-        //unsigned char pcup_map = 0x1 << pCpu_stats->pCpu_id;
-        //virDomainPinVcpu(vCpus_stats->vCpus_stats[i].domain, vCpus_stats->vCpus_stats[i].vCpu_id, &pcup_map, VIR_CPU_MAPLEN(pCpu_stats->n_pCpus));
+        unsigned char pCup_map = 0x1 << pCpus_stats->pCpu_id;
+        virDomainPinVcpu(vCpus_stats->vCpus_stats[i].domain, vCpus_stats->vCpus_stats[i].vCpu_id, &pCup_map, VIR_CPU_MAPLEN(pCpus_stats->n_pCpus));
 
         pCpu_stats.load += vCpus_stats->vCpus_stats[i].load;
         insertHeap(pCpus_stats, pCpu_stats);
