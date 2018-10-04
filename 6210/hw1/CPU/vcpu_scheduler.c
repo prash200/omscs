@@ -11,9 +11,6 @@
 #define TRACE(...)
 #endif
 
-static const long NANOSECOND = 1000000000;
-static const double DIFF_THRESHOLD = 20.0;
-
 // Represents an array of domain pointers
 struct DomainArray
 {
@@ -304,9 +301,9 @@ void insertHeap(struct PCpuStatsArray* pCpus_stats, struct PCpuStats pCpu_stats)
     int heap_size = pCpus_stats->n_pCpus;
     pCpus_stats->n_pCpus += 1;
     pCpus_stats->pCpus_stats[heap_size] = pCpu_stats;
-	bubbleUpHeap(pCpus_stats->pCpus_stats, heap_size);
+    bubbleUpHeap(pCpus_stats->pCpus_stats, heap_size);
 
-	tracePCpuStatsArray(pCpus_stats);
+    tracePCpuStatsArray(pCpus_stats);
 }
 
 // Sort w.r.t. vcpu load
@@ -319,7 +316,7 @@ void sort(struct  VCpuStatsArray* vCpus_stats)
     {
         for (int j = i + 1 ; j < vCpus_stats->n_vCpus ; ++j)
         {
-            if (vCpus_stats->vCpus_stats[i].load > vCpus_stats->vCpus_stats[j].load)
+            if (vCpus_stats->vCpus_stats[i].load < vCpus_stats->vCpus_stats[j].load)
             {
                 struct VCpuStats temp = vCpus_stats->vCpus_stats[i];
                 vCpus_stats->vCpus_stats[i] = vCpus_stats->vCpus_stats[j];
@@ -331,65 +328,7 @@ void sort(struct  VCpuStatsArray* vCpus_stats)
     traceVCpuStatsArray(vCpus_stats);
 }
 
-/*
-int main(int argc, char **argv)
-{
-    if (argc != 2) {
-        printf("[ERROR] Usage: vcpu_scheduler <time interval(s)>.\n");
-        return 1;
-    }
-    virConnectPtr conn = virConnectOpen("qemu:///system");
-    int prev_n_doms = 0;
-    int n_pcpus = getNrPcpus(conn);
-    struct DomList* dom_list = (struct DomList *)calloc(1, sizeof(struct DomList)); //TODO: free
-    double *pcpu_usage = (double *)calloc(n_pcpus, sizeof(double)); //TODO:free
-    if (!dom_list || !pcpu_usage) {
-        printf("[ERROR] Cannot allocate memory.\n");
-        return(1);
-    }
-
-    struct DomStats *cur_dom_stats, *prev_dom_stats; //TODO: free inside and outside.
-    double period = atof(argv[1]) * NANOSECOND;
-    while (activeDoms(conn, dom_list) > 0) {
-        // Set up current round data.
-        cur_dom_stats = (struct DomStats *)calloc(dom_list->n_doms, sizeof(struct DomStats)); //TODO: free
-        setDomStats(n_pcpus, dom_list, cur_dom_stats);
-
-        // Check if # of active domain changes. When unchanged, calculate the usage and pin accordingly.
-        if (dom_list->n_doms != prev_n_doms) {
-            printf("Number of DOMs changed...\n");
-            prev_dom_stats = (struct DomStats *)calloc(dom_list->n_doms, sizeof(struct DomStats));
-        } else {
-            printf("Number of DOMs stays the same...Calculating...\n");
-            double use = 0.0;
-            for (int i = 0; i < dom_list->n_doms; i++) {
-                for (int j = 0; j < cur_dom_stats[i].n_vcpus; j++) {
-                    use =  usage(cur_dom_stats[i].vcpus_time[j] -
-                                                prev_dom_stats[i].vcpus_time[j], period);
-                    printf("Domain %s 's %d vcpu has usage %f during this period, \n",
-                           virDomainGetName(dom_list->doms[i]), j, use);
-                    pcpu_usage[cur_dom_stats[i].pcpus[j]] += use;
-                }
-            }
-            vcpuPin(pcpu_usage, n_pcpus, cur_dom_stats, prev_dom_stats, dom_list->n_doms, period);
-        } // finish checking dom number change.
-        printf("Finished scheduling!\n\n\n\n");
-        // Update prev value to cur.
-        memcpy(prev_dom_stats, cur_dom_stats, dom_list->n_doms * sizeof(struct DomStats));
-        prev_n_doms = dom_list->n_doms;
-        clearPcpuUsage(pcpu_usage, n_pcpus);
-        sleep(atoi(argv[1]));
-    } // finish while loop
-
-    virConnectClose(conn);
-
-    free(dom_list->doms);
-    free(dom_list);
-    printf("No active doms. Program exiting..\n");
-    return 0;
-}
-*/
-
+// balance load across pCpus
 void balanceLoad(struct VCpuStatsArray *vCpus_stats, struct PCpuStatsArray *pCpus_stats)
 {
     buildHeap(pCpus_stats);
@@ -398,7 +337,7 @@ void balanceLoad(struct VCpuStatsArray *vCpus_stats, struct PCpuStatsArray *pCpu
     for (int i = 0 ; i < vCpus_stats->n_vCpus ; ++i)
     {
         struct PCpuStats pCpu_stats = pCpus_stats->pCpus_stats[0];
-		deleteHeapMin(pCpus_stats);
+        deleteHeapMin(pCpus_stats);
 
         unsigned char pCup_map = 0x1 << pCpu_stats.pCpu_id;
         virDomainPinVcpu(vCpus_stats->vCpus_stats[i].domain, vCpus_stats->vCpus_stats[i].vCpu_id, &pCup_map, VIR_CPU_MAPLEN(pCpus_stats->n_pCpus));
@@ -408,19 +347,46 @@ void balanceLoad(struct VCpuStatsArray *vCpus_stats, struct PCpuStatsArray *pCpu
     }
 }
 
-int main()
+// main method
+int main(int argc, char **argv)
 {
+    if (argc != 2)
+    {
+        printf("[ERROR] Usage: vcpu_scheduler <time interval(s)>.\n");
+        return 1;
+    }
+
     virConnectPtr connection = virConnectOpen("qemu:///system");
+    while (1)
+    {
+        struct DomainArray active_domains;
+        getActiveDomains(connection, &active_domains);
+        if (active_domains.n_domains == 0)
+        {
+            printf("[ERROR] No active domains to balance. Quitting...\n");
+            break;
+        }
 
-    struct DomainArray active_domains;
-    struct PCpuStatsArray pCpus_stats;
-    struct VCpuStatsArray vCpus_stats;
+        struct PCpuStatsArray pCpus_stats;
+        struct VCpuStatsArray vCpus_stats;
 
-    getActiveDomains(connection, &active_domains);
-    getPCpuStats(connection, &pCpus_stats);
-    getVCpuStats(&active_domains, &vCpus_stats);
+        getPCpuStats(connection, &pCpus_stats);
+        getVCpuStats(&active_domains, &vCpus_stats);
 
-    balanceLoad(&vCpus_stats, &pCpus_stats);
+        balanceLoad(&vCpus_stats, &pCpus_stats);
 
+        active_domains.n_domains = 0;
+        free(active_domains.domains);
+
+        pCpus_stats.n_pCpus = 0;
+        free(pCpus_stats.pCpus_stats);
+
+        vCpus_stats.n_vCpus = 0;
+        free(vCpus_stats.vCpus_stats);
+
+        sleep(atoi(argv[1]));
+    }
+
+    virConnectClose(connection);
     return 0;
 }
