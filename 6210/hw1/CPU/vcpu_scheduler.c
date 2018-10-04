@@ -332,7 +332,7 @@ int main(int argc, char **argv)
 
 void balanceLoad(struct VCpuStatsArray *vCpus_stats, struct PCpuStatsArray *pCpus_stats)
 {
-	buildHeap(pCpu_stats);
+	buildHeap(pCpus_stats);
 	sort(vCpus_stats);
 
 	/*
