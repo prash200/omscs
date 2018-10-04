@@ -209,7 +209,7 @@ void heapify(struct PCpuStats *pCpu_stats, int index, int heap_size)
     else
 	{
 		int smallest_index = heap_size;
-        if (left < heap_size && pCpu_stats[left].load < pCpu_stats[index].load)
+        if (left < heap_size && pCpu_stats[left].load > pCpu_stats[index].load)
 		{
             smallest_index = left;
 		}
@@ -219,7 +219,7 @@ void heapify(struct PCpuStats *pCpu_stats, int index, int heap_size)
 		}
 
         int right = ((2*index)+2);
-        if (right < heap_size && pCpu_stats[right].load < pCpu_stats[smallest_index].load)
+        if (right < heap_size && pCpu_stats[right].load > pCpu_stats[smallest_index].load)
 		{
             smallest_index = right;
 		}
@@ -259,7 +259,7 @@ void sort(struct  VCpuStatsArray* vCpus_stats)
 	{
 		for (int j = i + 1 ; j < vCpus_stats->n_vCpus ; ++j)
 		{
-			if (vCpus_stats->vCpus_stats[i].load > vCpus_stats->vCpus_stats[j].load)
+			if (vCpus_stats->vCpus_stats[i].load < vCpus_stats->vCpus_stats[j].load)
 			{
 				struct VCpuStats temp = vCpus_stats->vCpus_stats[i];
 				vCpus_stats->vCpus_stats[i] = vCpus_stats->vCpus_stats[j];
