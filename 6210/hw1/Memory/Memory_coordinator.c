@@ -1,195 +1,173 @@
-//
-// Created by pwu on 9/21/17.
-//
-
 #include <stdio.h>
 #include <libvirt/libvirt.h>
 #include <stdlib.h>
 #include <unistd.h>
 
-static const double STARVATION =  0.2; // If unused < 0.2 * actual -> starving
-static const double WASTE = 0.35;  // If unused > 0.35 * actual -> wasting
-static const double PENALTY = 0.3; // Penalty. By which rate we are deflating the unused memory.
-static const double HOST_GENEROSITY = 8.0; // One factor by which memory is released from host
-static const unsigned long MIN_HOST_MEMORY = 400 * 1024; //Amount of memory needed by host to keep from crash.
-static const unsigned long MIN_DOM_MEMORY = 350 * 1024; // Amount of memory needed by domain to keep from crash.
-static const char DBG_PWU = 1;
+#ifdef DEBUG
+#define TRACE(...) printf(__VA_ARGS__)
+#else
+#define TRACE(...)
+#endif
 
-struct DomList {
-    virDomainPtr *doms;
-    int n_doms;
+// Represents an array of domain pointers
+struct DomainArray
+{
+    // Pointer to an array of domain pointers
+    virDomainPtr *domains;
+    // No. of domains in the domain
+    int n_domains;
 };
 
-struct DomLinkedNode {
-    virDomainPtr dom;
-    struct DomLinkedNode *next;
-    unsigned long act_memory;
-    unsigned long avail_memory; // kB
+// Represents vMemory
+struct VMemoryStats
+{
+    // Domian pointer
+    virDomainPtr domain;
+    // used memory in vMemory
+    unsigned long long used_memory;
+    // free memory in vMemory
+    unsigned long long free_memory;
 };
 
-int activeDoms(virConnectPtr conn, struct DomList *list) {
-    unsigned int flags = VIR_CONNECT_LIST_DOMAINS_ACTIVE |
-                         VIR_CONNECT_LIST_DOMAINS_RUNNING;
-    virDomainPtr *doms;
-    int n_doms = virConnectListAllDomains(conn, &doms, flags);
-    if (n_doms == 0) {
+// Represents a vMemory Array
+struct VMemoryStatsArray
+{
+    // Pointer to an array of vMemorys
+    struct VMemoryStats *vMemorys_stats;
+    // No. of vMemorys
+    int n_vMemorys;
+};
+
+// Trace vMemorysStats array
+void traceVMemoryStatsArray(struct VMemoryStatsArray* vMemorys_stats)
+{
+    #ifdef DEBUG
+    for (int i = 0 ; i < vMemorys_stats->n_vMemorys ; ++i)
+    {
+        printf("domain = %d, free_memory = %llu\n", vMemorys_stats->vMemorys_stats[i].domain, vMemorys_stats->vMemorys_stats[i].free_memory);
+    }
+    #endif
+}
+
+//  Gets an array of active domains
+void getActiveDomains(virConnectPtr connection, struct DomainArray *domain_array)
+{
+    TRACE("getActiveDomains called\n");
+    TRACE("connection = %p\n", connection);
+    TRACE("domain_array = %p\n", domain_array);
+
+    virDomainPtr *domains = NULL;
+    int n_domains = virConnectListAllDomains(connection, &domains, VIR_CONNECT_LIST_DOMAINS_ACTIVE | VIR_CONNECT_LIST_DOMAINS_RUNNING);
+
+    TRACE("domains = %p\n", domains);
+    TRACE("domains = %d\n", n_domains);
+
+    if (n_domains == 0)
+    {
         printf("[ERROR] No active domains!\n");
         exit(EXIT_FAILURE);
     }
-    list->doms = doms;
-    list->n_doms = n_doms;
-    if (DBG_PWU) {
-        printf("---------we have %d active domains--------\n", n_doms);
-    }
-    return n_doms;
+
+    domain_array->domains = domains;
+    domain_array->n_domains = n_domains;
 }
 
-void setUpNode(struct DomLinkedNode **head, struct DomLinkedNode **cur, virDomainPtr dom,
-               unsigned long act_memory, unsigned long avail_memory) {
-    if (!(*head)) {
-        *head = (struct DomLinkedNode *)calloc(1, sizeof(struct DomLinkedNode));
-        *cur = *head;
-    } else {
-        struct DomLinkedNode *newNode = (struct DomLinkedNode *)calloc(1, sizeof(struct DomLinkedNode));
-        (*cur)->next = newNode;
-        (*cur) = (*cur)->next;
+//  Gets vMemory stats
+void getVMemoryStats(struct DomainArray *active_domains, struct VMemoryStatsArray *vMemorys_stats)
+{
+    TRACE("getVMemoryStats called\n");
+    TRACE("active_domains = %p\n", active_domains);
+    TRACE("vMemorys_stats = %p\n", vMemorys_stats);
+
+    struct VMemoryStats *vMemory_stats = malloc(sizeof(struct VMemoryStats) * active_domains->n_domains);
+    TRACE("vMemory_stats = %p\n", vMemory_stats);
+
+    for (int i = 0 ; i < active_domains->n_domains ; ++i)
+    {
+        TRACE("domain = %p\n", active_domains->domains[i]);
+
+        virDomainMemoryStatStruct memory_stats[VIR_DOMAIN_MEMORY_STAT_NR];
+        virDomainMemoryStats(active_domains->domains[i], memory_stats, VIR_DOMAIN_MEMORY_STAT_NR, 0);
+
+        for (int j = 0; j < VIR_DOMAIN_MEMORY_STAT_NR; j++)
+        {
+            vMemory_stats[i].domain = active_domains->domains[i];
+
+            TRACE("tag = %s, val = %llu\n", memory_stats[j].tag, memory_stats[j].val);
+
+            if(memory_stats[j].tag == VIR_DOMAIN_MEMORY_STAT_USED)
+            {
+                vMemory_stats[i].used_memory = memory_stats[j].val;
+            }
+            else if (memory_stats[j].tag == VIR_DOMAIN_MEMORY_STAT_UNUSED)
+            {
+                vMemory_stats[i].free_memory = memory_stats[j].val;
+            }
+        }
     }
-    (*cur)->next = NULL;
-    (*cur)->dom = dom;
-    (*cur)->act_memory = act_memory;
-    (*cur)->avail_memory = avail_memory;
-    return;
+
+    vMemorys_stats->vMemorys_stats = vMemory_stats;
+    vMemorys_stats->n_vMemorys = active_domains->n_domains;
+
+    traceVMemoryStatsArray(vMemorys_stats);
 }
 
-int main(int argc, char **argv) {
-    if (argc != 2) {
-        printf("[ERROR] Usage: memory_coordinator <time interval(s)>.\n");
+// balance load across vMemorys
+void balanceLoad(struct VMemoryStatsArray *vMemorys_stats)
+{
+	TRACE("balanceLoad called\n");
+    traceVMemoryStatsArray(vMemorys_stats);
+
+    unsigned long long avgFreeMemory = 0;
+    for (int i = 0 ; i < vMemorys_stats->n_vMemorys ; ++i)
+    {
+        avgFreeMemory += vMemorys_stats->vMemorys_stats[i].free_memory;
+    }
+
+    avgFreeMemory /= vMemorys_stats->n_vMemorys;
+    for (int i = 0 ; i < vMemorys_stats->n_vMemorys ; ++i)
+    {
+        virDomainSetMemory(vMemorys_stats->vMemorys_stats[i].domain, vMemorys_stats->vMemorys_stats[i].used_memory + avgFreeMemory);
+    }
+
+    traceVMemoryStatsArray(vMemorys_stats);
+}
+
+// main method
+int main(int argc, char **argv)
+{
+    if (argc != 2)
+    {
+        printf("[ERROR] Usage: Memory_coordinator <time interval(s)>.\n");
         return 1;
     }
-    virConnectPtr conn = virConnectOpen("qemu:///system");
-    struct DomList* dom_list = (struct DomList *)calloc(1, sizeof(struct DomList)); //TODO: free
-    if (!dom_list) {
-        printf("[ERROR] Cannot allocate memory.\n");
-        return(1);
-    }
-    while (activeDoms(conn, dom_list) > 0) {
-        struct DomLinkedNode *starvHead = NULL, *starvCur = NULL, *wasteHead = NULL, *wasteCur = NULL, *cur = NULL;
-        int n_nodes[2] = {0};
-        //Form linked list of starving doms, wasting doms.
-        for (int i = 0; i < dom_list->n_doms; i++) {
-            virDomainMemoryStatStruct mem_stats[VIR_DOMAIN_MEMORY_STAT_NR];
-            unsigned int flags = VIR_DOMAIN_AFFECT_CURRENT;
-            if (virDomainSetMemoryStatsPeriod(dom_list->doms[i], 1, flags)
-                == -1) {
-                printf("[ERROR] %sCould not change balloon collect period for domain.\n",
-                       virDomainGetName(dom_list->doms[i]));
-            }
-            if (virDomainMemoryStats(dom_list->doms[i], mem_stats,
-            VIR_DOMAIN_MEMORY_STAT_NR, 0) == -1) {
-                printf("[ERROR] %s: Could not collect memory stats of domain.\n",
-                    virDomainGetName(dom_list->doms[i]));
-            }
-            unsigned long long actual;
-            unsigned long long available;
-            unsigned long long unused;
-            for (int j = 0; j < VIR_DOMAIN_MEMORY_STAT_NR; j++) {
-                if (mem_stats[j].tag == VIR_DOMAIN_MEMORY_STAT_ACTUAL_BALLOON) {
-                    actual = mem_stats[j].val;
-                } else if (mem_stats[j].tag == VIR_DOMAIN_MEMORY_STAT_AVAILABLE) {
-                    available = mem_stats[j].val;
-                } else if (mem_stats[j].tag == VIR_DOMAIN_MEMORY_STAT_UNUSED) {
-                    unused = mem_stats[j].val;
-                }
 
-            }
-            //TODO: remove
-            printf("%s: actual balloon size--%luMB;\tavailable--%luMB;\tunused--%luMB.\n", virDomainGetName(dom_list->doms[i]),
-                   (unsigned long)(actual / 1024),
-                   (unsigned long)(available / 1024),
-                   (unsigned long)(unused / 1024));
-           if (unused < STARVATION * actual) {
-                setUpNode(&starvHead, &starvCur, dom_list->doms[i],
-                          actual,
-                          unused);
-                n_nodes[0]++;
-            } else if (unused > WASTE * actual) {
-                setUpNode(&wasteHead, &wasteCur, dom_list->doms[i],
-                          actual,
-                          unused);
-                n_nodes[1]++;
-            }
+    virConnectPtr connection = virConnectOpen("qemu:///system");
+    while (1)
+    {
+        struct DomainArray active_domains;
+        getActiveDomains(connection, &active_domains);
+        if (active_domains.n_domains == 0)
+        {
+            printf("[ERROR] No active domains to balance. Quitting...\n");
+            break;
         }
-        printf("Number of starving domains: %d;\nNumber of wasteful domains: %d.\n", n_nodes[0],n_nodes[1]);
-        if (starvHead) {
-            //There are starving domains.
-            unsigned long totalNeed = 0; //kB
-            cur = starvHead;
-            for (int i = 0; i < n_nodes[0]; i++) {
-                totalNeed += (STARVATION * cur->act_memory) - cur->avail_memory;
-                cur = cur->next;
-            }
-            printf("Starving domains need %lu MB in total.\n", totalNeed / 1024);
-            unsigned long totalRelease = 0; //kB
-            if (wasteHead) {
-                cur = wasteHead;
-                for (int i = 0; i < n_nodes[1]; i++) {
-                    unsigned long alloc = cur->act_memory - cur->avail_memory * PENALTY;
-                    if (alloc < MIN_DOM_MEMORY) {
-                        alloc = MIN_DOM_MEMORY;
-                    }
-                    virDomainSetMemory(cur->dom, alloc);
-                    totalRelease += (cur->act_memory - alloc);
-                    printf("Wasteful domain %s: Deflating memory from %lu MB to %lu MB.\n",
-                           virDomainGetName(cur->dom), cur->act_memory / 1024, alloc / 1024);
-                    cur = cur->next;
-                }
-            }
-            printf("Total release by wasteful vms is %lu.\n", totalRelease / 1024);
-            if (totalRelease < totalNeed) {
-                unsigned long nodeProv = HOST_GENEROSITY * (totalNeed - totalRelease);
-                unsigned long nodeFree = virNodeGetFreeMemory(conn) / 1024 - MIN_HOST_MEMORY;
-                if (nodeFree <= 0) {
-                    printf("[Warning] host memory not enough. Will not provide memory from house this time.\n");
-                } else {
-                    if (nodeProv > nodeFree) {
-                        nodeProv = nodeFree;
-                    }
-                    totalRelease += nodeProv;
-                    printf("Total release after adding host is %lu.\n", totalRelease / 1024);
-                }
-            }
-            unsigned long provision = totalRelease / n_nodes[0];
-            cur = starvHead;
-            for (int i = 0; i < n_nodes[0]; i++) {
-                unsigned long alloc = cur->act_memory + provision;
-                unsigned long maxMemory = virDomainGetMaxMemory(cur->dom);
-                if (alloc > maxMemory) {
-                    alloc = maxMemory; // If you really need that much, let me go ahead and allocate the most possibly
-                }
-                virDomainSetMemory(cur->dom, alloc);
-                printf("Starving domain %s: Inflating Memory from %lu MB to %lu MB.\n", virDomainGetName(cur->dom), cur->act_memory / 1024, alloc / 1024);
-                cur = cur->next;
-            }
-        } else if (wasteHead) {
-            // No starving domain, give back some wasted memory to host.
-            printf("No starving domain. Putting back memory to host.\n");
-            cur = wasteHead;
-            for (int i = 0; i < n_nodes[1]; i++) {
-                unsigned long alloc = cur->act_memory - cur->avail_memory * PENALTY;
-                if (alloc < MIN_DOM_MEMORY) {
-                    alloc = MIN_DOM_MEMORY;
-                }
-                virDomainSetMemory(cur->dom, alloc);
-                printf("Wasteful domain %s: Deflating memory %lu MB to %lu MB to host.\n",
-                       virDomainGetName(cur->dom), cur->act_memory / 1024, alloc / 1024);
-                cur = cur->next;
-            }
-        }
-        printf("Finished coordination!\n\n\n\n");
-        fflush(stdout);
+
+        struct VMemoryStatsArray vMemorys_stats;
+
+        getVMemoryStats(&active_domains, &vMemorys_stats);
+
+        balanceLoad(&vMemorys_stats);
+
+        active_domains.n_domains = 0;
+        free(active_domains.domains);
+
+        vMemorys_stats.n_vMemorys = 0;
+        free(vMemorys_stats.vMemorys_stats);
+
         sleep(atoi(argv[1]));
-    } // Finish while loop.
-    printf("No active doms. Program exiting...");
-    virConnectClose(conn);
+    }
+
+    virConnectClose(connection);
     return 0;
 }
