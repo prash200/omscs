@@ -4,7 +4,7 @@ CFLAGS=-Wall -I. -lvirt -std=c99
 release: vcpu_scheduler.c
 	$(CC) -o ./vcpu_scheduler ./vcpu_scheduler.c $(CFLAGS)
 
-debug:
+debug: vcpu_scheduler.c
 	$(CC) -o ./vcpu_scheduler ./vcpu_scheduler.c $(CFLAGS) -DDEBUG
 	
 clean:

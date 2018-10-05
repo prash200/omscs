@@ -1,8 +1,11 @@
 CC=gcc
-CFLAGS=-Wall -I. -lvirt
+CFLAGS=-Wall -I. -lvirt -std=c99
 
-make: Memory_coordinator.c
+release: Memory_coordinator.c
 	$(CC) -o ./Memory_coordinator ./Memory_coordinator.c $(CFLAGS)
 
+debug: Memory_coordinator.c
+	$(CC) -o ./Memory_coordinator ./Memory_coordinator.c $(CFLAGS) -DDEBUG
+	
 clean:
 	rm -f ./Memory_coordinator
