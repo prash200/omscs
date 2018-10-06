@@ -136,7 +136,7 @@ void balanceLoad(struct VMemoryStatsArray *vMemorys_stats)
 
         TRACE("max_memory = %lu\n", max_memory);
 
-		unsigned long long new_memory = vMemorys_stats->vMemorys_stats[i].available_memory - vMemorys_stats->vMemorys_stats[i].free_memory + avgFreeMemor;
+		unsigned long long new_memory = vMemorys_stats->vMemorys_stats[i].available_memory - vMemorys_stats->vMemorys_stats[i].free_memory + avgFreeMemory;
 		new_memory = ((new_memory + 1024) / 1024) * 1024;
 
 		TRACE("new_memory = %llu\n", new_memory);
