@@ -23,8 +23,8 @@ struct VMemoryStats
 {
     // Domian pointer
     virDomainPtr domain;
-    // used memory in vMemory
-    unsigned long long used_memory;
+    // available memory in vMemory
+    unsigned long long available_memory;
     // free memory in vMemory
     unsigned long long free_memory;
 };
@@ -44,7 +44,7 @@ void traceVMemoryStatsArray(struct VMemoryStatsArray* vMemorys_stats)
     #ifdef DEBUG
     for (int i = 0 ; i < vMemorys_stats->n_vMemorys ; ++i)
     {
-        printf("domain = %p, used_memory = %llu, free_memory = %llu\n", vMemorys_stats->vMemorys_stats[i].domain, vMemorys_stats->vMemorys_stats[i].used_memory, vMemorys_stats->vMemorys_stats[i].free_memory);
+        printf("domain = %p, available_memory = %llu, free_memory = %llu\n", vMemorys_stats->vMemorys_stats[i].domain, vMemorys_stats->vMemorys_stats[i].available_memory, vMemorys_stats->vMemorys_stats[i].free_memory);
     }
     #endif
 }
@@ -95,9 +95,9 @@ void getVMemoryStats(struct DomainArray *active_domains, struct VMemoryStatsArra
 
             TRACE("tag = %d, val = %llu\n", memory_stats[j].tag, memory_stats[j].val);
 
-            if(memory_stats[j].tag == VIR_DOMAIN_MEMORY_STAT_RSS)
+            if(memory_stats[j].tag == VIR_DOMAIN_MEMORY_STAT_AVAILABLE)
             {
-                vMemory_stats[i].used_memory = memory_stats[j].val;
+                vMemory_stats[i].available_memory = memory_stats[j].val;
             }
             else if (memory_stats[j].tag == VIR_DOMAIN_MEMORY_STAT_UNUSED)
             {
@@ -130,10 +130,25 @@ void balanceLoad(struct VMemoryStatsArray *vMemorys_stats)
 
     for (int i = 0 ; i < vMemorys_stats->n_vMemorys ; ++i)
     {
-        TRACE("new_memory = %llu\n", vMemorys_stats->vMemorys_stats[i].used_memory + avgFreeMemory);
-        TRACE("max_memory = %lu\n", virDomainGetMaxMemory(vMemorys_stats->vMemorys_stats[i].domain));
+        TRACE("new_memory = %llu\n", vMemorys_stats->vMemorys_stats[i].available_memory + avgFreeMemory);
 
-        virDomainSetMemory(vMemorys_stats->vMemorys_stats[i].domain, vMemorys_stats->vMemorys_stats[i].used_memory + avgFreeMemory);
+		unsigned long max_memory = virDomainGetMaxMemory(vMemorys_stats->vMemorys_stats[i].domain);
+
+        TRACE("max_memory = %lu\n", max_memory);
+
+		unsigned long long new_memory = vMemorys_stats->vMemorys_stats[i].available_memory - vMemorys_stats->vMemorys_stats[i].free_memory + avgFreeMemor;
+		new_memory = ((new_memory + 1024) / 1024) * 1024;
+
+		TRACE("new_memory = %llu\n", new_memory);
+
+		if (new_memory > max_memory)
+		{
+			virDomainSetMaxMemory(vMemorys_stats->vMemorys_stats[i].domain, new_memory);
+		}
+		else
+		{
+			virDomainSetMemory(vMemorys_stats->vMemorys_stats[i].domain, new_memory);
+		}
     }
 
     traceVMemoryStatsArray(vMemorys_stats);
