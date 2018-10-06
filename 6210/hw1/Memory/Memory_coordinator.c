@@ -115,7 +115,7 @@ void getVMemoryStats(struct DomainArray *active_domains, struct VMemoryStatsArra
 // balance load across vMemorys
 void balanceLoad(struct VMemoryStatsArray *vMemorys_stats)
 {
-	TRACE("balanceLoad called\n");
+    TRACE("balanceLoad called\n");
     traceVMemoryStatsArray(vMemorys_stats);
 
     unsigned long long avgFreeMemory = 0;
@@ -125,8 +125,14 @@ void balanceLoad(struct VMemoryStatsArray *vMemorys_stats)
     }
 
     avgFreeMemory /= vMemorys_stats->n_vMemorys;
+
+    TRACE("avgFreeMemory = %llu\n", avgFreeMemory);
+
     for (int i = 0 ; i < vMemorys_stats->n_vMemorys ; ++i)
     {
+        TRACE("new_memory = %llu\n", vMemorys_stats->vMemorys_stats[i].used_memory + avgFreeMemory);
+        TRACE("max_memory = %llu\n", virDomainGetMaxMemory(vMemorys_stats->vMemorys_stats[i].domain));
+
         virDomainSetMemory(vMemorys_stats->vMemorys_stats[i].domain, vMemorys_stats->vMemorys_stats[i].used_memory + avgFreeMemory);
     }
 
