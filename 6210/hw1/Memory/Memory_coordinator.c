@@ -130,8 +130,6 @@ void balanceLoad(struct VMemoryStatsArray *vMemorys_stats)
 
     for (int i = 0 ; i < vMemorys_stats->n_vMemorys ; ++i)
     {
-        TRACE("new_memory = %llu\n", vMemorys_stats->vMemorys_stats[i].available_memory + avgFreeMemory);
-
 		unsigned long max_memory = virDomainGetMaxMemory(vMemorys_stats->vMemorys_stats[i].domain);
 
         TRACE("max_memory = %lu\n", max_memory);
