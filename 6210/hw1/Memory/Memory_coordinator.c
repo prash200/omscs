@@ -44,7 +44,7 @@ void traceVMemoryStatsArray(struct VMemoryStatsArray* vMemorys_stats)
     #ifdef DEBUG
     for (int i = 0 ; i < vMemorys_stats->n_vMemorys ; ++i)
     {
-        printf("domain = %d, free_memory = %llu\n", vMemorys_stats->vMemorys_stats[i].domain, vMemorys_stats->vMemorys_stats[i].free_memory);
+        printf("domain = %p, used_memory = %llu, free_memory = %llu\n", vMemorys_stats->vMemorys_stats[i].domain, vMemorys_stats->vMemorys_stats[i].used_memory, vMemorys_stats->vMemorys_stats[i].free_memory);
     }
     #endif
 }
@@ -93,7 +93,7 @@ void getVMemoryStats(struct DomainArray *active_domains, struct VMemoryStatsArra
         {
             vMemory_stats[i].domain = active_domains->domains[i];
 
-            TRACE("tag = %s, val = %llu\n", memory_stats[j].tag, memory_stats[j].val);
+            TRACE("tag = %d, val = %llu\n", memory_stats[j].tag, memory_stats[j].val);
 
             if(memory_stats[j].tag == VIR_DOMAIN_MEMORY_STAT_RSS)
             {
