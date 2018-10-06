@@ -95,7 +95,7 @@ void getVMemoryStats(struct DomainArray *active_domains, struct VMemoryStatsArra
 
             TRACE("tag = %s, val = %llu\n", memory_stats[j].tag, memory_stats[j].val);
 
-            if(memory_stats[j].tag == VIR_DOMAIN_MEMORY_STAT_USED)
+            if(memory_stats[j].tag == VIR_DOMAIN_MEMORY_STAT_RSS)
             {
                 vMemory_stats[i].used_memory = memory_stats[j].val;
             }
