@@ -4,7 +4,7 @@ from __future__ import print_function
 import libvirt
 import sched, time
 
-CONFIG_FILE = '../vmlist.conf'
+CONFIG_FILE = '../vmlist.conf.cpu'
 
 global conn
 global vmlist

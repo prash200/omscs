@@ -3,7 +3,7 @@
 from __future__ import print_function
 import libvirt
 
-CONFIG_FILE = 'vmlist.conf'
+CONFIG_FILE = 'vmlist.conf.cpu'
 
 
 def get_pcpu(conn):

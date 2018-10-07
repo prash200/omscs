@@ -6,7 +6,7 @@ import os
 import sys
 import subprocess
 
-CONFIG_FILE = '../vmlist.conf'
+CONFIG_FILE = '../vmlist.conf.cpu'
 
 def get_pcpu(conn):
     hostinfo = conn.getInfo()

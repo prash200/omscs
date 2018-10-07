@@ -4,7 +4,7 @@ from __future__ import print_function
 import libvirt
 import sys
 
-CONFIG_FILE = 'vmlist.conf'
+CONFIG_FILE = 'vmlist.conf.memory'
 CURRENT_MEMORY = 256
 #MAX_MEMORY = 2 * 1024
 

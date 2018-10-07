@@ -5,7 +5,15 @@ import libvirt
 import os
 import sys
 
-CONFIG_FILE = 'vmlist.conf'
+CONFIG_FILE = 'vmlist.conf.cpu'
+if len(sys.argv) > 1:
+    print "USAGE: ./startallvm.py [memory]"
+    exit(1)
+elif sys.argv[1] == 'memory':
+    print "using CPU conf file"
+    CONFIG_FILE = 'vmlist.conf.memory'
+else:
+    print "using cpu conf file, to use memory conf file use './startallvm.py memory'"
 
 if __name__ == '__main__':
 

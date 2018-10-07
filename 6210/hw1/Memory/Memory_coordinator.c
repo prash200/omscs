@@ -95,7 +95,7 @@ void getVMemoryStats(struct DomainArray *active_domains, struct VMemoryStatsArra
 
             TRACE("tag = %d, val = %llu\n", memory_stats[j].tag, memory_stats[j].val);
 
-            if(memory_stats[j].tag == VIR_DOMAIN_MEMORY_STAT_AVAILABLE)
+            if(memory_stats[j].tag == VIR_DOMAIN_MEMORY_STAT_ACTUAL_BALLOON)
             {
                 vMemory_stats[i].available_memory = memory_stats[j].val;
             }
@@ -137,16 +137,14 @@ void balanceLoad(struct VMemoryStatsArray *vMemorys_stats)
 		unsigned long long new_memory = vMemorys_stats->vMemorys_stats[i].available_memory - vMemorys_stats->vMemorys_stats[i].free_memory + avgFreeMemory;
 		new_memory = ((new_memory + 1024) / 1024) * 1024;
 
-		TRACE("new_memory = %llu\n", new_memory);
-
 		if (new_memory > max_memory)
 		{
-			virDomainSetMaxMemory(vMemorys_stats->vMemorys_stats[i].domain, new_memory);
+            new_memory = max_memory;
 		}
-		else
-		{
-			virDomainSetMemory(vMemorys_stats->vMemorys_stats[i].domain, new_memory);
-		}
+
+        TRACE("new_memory = %llu\n", new_memory);
+
+        virDomainSetMemory(vMemorys_stats->vMemorys_stats[i].domain, new_memory);
     }
 
     traceVMemoryStatsArray(vMemorys_stats);

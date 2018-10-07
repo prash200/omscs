@@ -5,7 +5,7 @@ import libvirt
 import sched, time
 import os
 
-CONFIG_FILE = '../vmlist.conf'
+CONFIG_FILE = '../vmlist.conf.memory'
 
 global conn
 global vmlist
