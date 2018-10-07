@@ -16,7 +16,6 @@ else:
     print "using cpu conf file, to use memory conf file use './startallvm.py memory'"
 
 if __name__ == '__main__':
-
     if len(sys.argv) != 2:
         print('Usage: ./assignfiletoallvm.py [file]')
         exit(-1)
