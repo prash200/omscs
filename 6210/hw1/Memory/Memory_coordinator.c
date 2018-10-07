@@ -112,21 +112,21 @@ void getVMemoryStats(struct DomainArray *active_domains, struct VMemoryStatsArra
     traceVMemoryStatsArray(vMemorys_stats);
 }
 
-// balance load across vMemorys
-void balanceLoad(struct VMemoryStatsArray *vMemorys_stats)
+// balance memory across vMemorys
+void balanceMemory(struct VMemoryStatsArray *vMemorys_stats)
 {
-    TRACE("balanceLoad called\n");
+    TRACE("balanceMemory called\n");
     traceVMemoryStatsArray(vMemorys_stats);
 
-    unsigned long long avgFreeMemory = 0;
+    unsigned long long average_free_memory = 0;
     for (int i = 0 ; i < vMemorys_stats->n_vMemorys ; ++i)
     {
-        avgFreeMemory += vMemorys_stats->vMemorys_stats[i].free_memory;
+        average_free_memory += vMemorys_stats->vMemorys_stats[i].free_memory;
     }
 
-    avgFreeMemory /= vMemorys_stats->n_vMemorys;
+    average_free_memory /= vMemorys_stats->n_vMemorys;
 
-    TRACE("avgFreeMemory = %llu\n", avgFreeMemory);
+    TRACE("average_free_memory = %llu\n", average_free_memory);
 
     for (int i = 0 ; i < vMemorys_stats->n_vMemorys ; ++i)
     {
@@ -134,7 +134,7 @@ void balanceLoad(struct VMemoryStatsArray *vMemorys_stats)
 
         TRACE("max_memory = %lu\n", max_memory);
 
-		unsigned long long new_memory = vMemorys_stats->vMemorys_stats[i].available_memory - vMemorys_stats->vMemorys_stats[i].free_memory + avgFreeMemory;
+		unsigned long long new_memory = vMemorys_stats->vMemorys_stats[i].available_memory - vMemorys_stats->vMemorys_stats[i].free_memory + average_free_memory;
 		new_memory = ((new_memory + 1024) / 1024) * 1024;
 
 		if (new_memory > max_memory)
@@ -145,6 +145,45 @@ void balanceLoad(struct VMemoryStatsArray *vMemorys_stats)
         TRACE("new_memory = %llu\n", new_memory);
 
         virDomainSetMemory(vMemorys_stats->vMemorys_stats[i].domain, new_memory);
+    }
+
+    traceVMemoryStatsArray(vMemorys_stats);
+}
+
+// reclaim vMemorys
+void reclaimMemory(struct VMemoryStatsArray *vMemorys_stats)
+{
+    TRACE("reclaimMemory called\n");
+    traceVMemoryStatsArray(vMemorys_stats);
+
+    double min_ratio = 1.0;
+    int min_ratio_index = -1;
+    unsigned long long min_ratio_available_memory, free_memory;
+    for (int i = 0 ; i < vMemorys_stats->n_vMemorys ; ++i)
+    {
+        double ratio = vMemorys_stats->vMemorys_stats[i].free_memory / vMemorys_stats->vMemorys_stats[i].available_memory;
+        TRACE("new ratio = %lf\n", ratio);
+        if (ratio < min_ratio)
+        {
+            min_ratio_index = i;
+            min_ratio = ratio;
+            TRACE("min ratio = %lf\n", min_ratio);
+        }
+    }
+
+    if (min_ratio > 0.2 && min_ratio_index != -1)
+    {
+        unsigned long long average_free_memory = vMemorys_stats->vMemorys_stats[min_ratio_index].available_memory * 0.2;
+
+        for (int i = 0 ; i < vMemorys_stats->n_vMemorys ; ++i)
+        {
+            unsigned long long new_memory = vMemorys_stats->vMemorys_stats[i].available_memory - vMemorys_stats->vMemorys_stats[i].free_memory + average_free_memory;
+            new_memory = ((new_memory + 1024) / 1024) * 1024;
+
+            TRACE("new_memory = %llu\n", new_memory);
+
+            virDomainSetMemory(vMemorys_stats->vMemorys_stats[i].domain, new_memory);
+        }
     }
 
     traceVMemoryStatsArray(vMemorys_stats);
@@ -173,8 +212,10 @@ int main(int argc, char **argv)
         struct VMemoryStatsArray vMemorys_stats;
 
         getVMemoryStats(&active_domains, &vMemorys_stats);
+        balanceMemory(&vMemorys_stats);
 
-        balanceLoad(&vMemorys_stats);
+        getVMemoryStats(&active_domains, &vMemorys_stats);
+        reclaimMemory(&vMemorys_stats);
 
         active_domains.n_domains = 0;
         free(active_domains.domains);
