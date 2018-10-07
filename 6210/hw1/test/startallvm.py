@@ -9,7 +9,7 @@ CONFIG_FILE = 'vmlist.conf.cpu'
 if len(sys.argv) > 1:
     print('USAGE: ./startallvm.py [memory]')
     exit(1)
-elif sys.argv[1] == 'memory':
+elif len(sys.argv) == 1 and sys.argv[1] == 'memory':
     print('using CPU conf file')
     CONFIG_FILE = 'vmlist.conf.memory'
 else:
