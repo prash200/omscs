@@ -3,6 +3,7 @@
 from __future__ import print_function
 import libvirt
 import time
+import sys
 
 CONFIG_FILE = 'vmlist.conf.cpu'
 if len(sys.argv) > 1:
