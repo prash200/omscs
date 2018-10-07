@@ -6,11 +6,11 @@ import time
 import sys
 
 CONFIG_FILE = 'vmlist.conf.cpu'
-if len(sys.argv) > 1:
+if len(sys.argv) > 2:
     print('USAGE: ./startallvm.py [memory]')
-    exit(1)
-elif len(sys.argv) == 1 and sys.argv[1] == 'memory':
-    print('using CPU conf file')
+    exit(-1)
+elif len(sys.argv) == 2 and sys.argv[1] == 'memory':
+    print('using memory conf file')
     CONFIG_FILE = 'vmlist.conf.memory'
 else:
     print('using cpu conf file, to use memory conf file use ./startallvm.py memory')

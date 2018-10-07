@@ -1,4 +1,4 @@
 #!/bin/sh
 
 cd ..
-./assignfiletoallvm.py cpu/
+./assignfiletoallvm.py cpu cpu/
