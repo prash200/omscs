@@ -160,7 +160,7 @@ void reclaimMemory(struct VMemoryStatsArray *vMemorys_stats)
     int min_ratio_index = -1;
     for (int i = 0 ; i < vMemorys_stats->n_vMemorys ; ++i)
     {
-        double ratio = double(vMemorys_stats->vMemorys_stats[i].free_memory) / double(vMemorys_stats->vMemorys_stats[i].available_memory);
+        double ratio = (double)vMemorys_stats->vMemorys_stats[i].free_memory / (double)vMemorys_stats->vMemorys_stats[i].available_memory;
         TRACE("new ratio = %lf\n", ratio);
         if (ratio < min_ratio)
         {
