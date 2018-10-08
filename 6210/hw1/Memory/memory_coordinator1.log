@@ -1417,4 +1417,87 @@ Untracked files:
 no changes added to commit (use "git add" and/or "git commit -a")
 ]0;prashant@Ubuntu1404: ~/omscs/6210/hw1prashant@Ubuntu1404:~/omscs/6210/hw1$ git add .
 warning: You ran 'git add' with neither '-A (--all)' or '--ignore-removal',
-whos
+whose behaviour will change in Git 2.0 with respect to paths you removed.
+Paths like '6210/hw1/Memory/Memory_coordinator.c' that are
+removed from your working tree are ignored with this version of Git.
+
+* 'git add --ignore-removal <pathspec>', which is the current default,
+  ignores paths you removed from your working tree.
+
+* 'git add --all <pathspec>' will let you also record the removals.
+
+Run 'git status' to check the paths you removed from your working tree.
+
+]0;prashant@Ubuntu1404: ~/omscs/6210/hw1prashant@Ubuntu1404:~/omscs/6210/hw1$ git commit -m ""A"d"d"
+[master 311ac54] Add
+ Committer: Ubuntu <prashant@Ubuntu1404.qcgbuhvqpneelmqcwan4p12cvc.xx.internal.cloudapp.net>
+Your name and email address were configured automatically based
+on your username and hostname. Please check that they are accurate.
+You can suppress this message by setting them explicitly:
+
+    git config --global user.name "Your Name"
+    git config --global user.email you@example.com
+
+After doing this, you may fix the identity used for this commit with:
+
+    git commit --amend --reset-author
+
+ 5 files changed, 3079 insertions(+)
+ create mode 100755 6210/hw1/Memory/memory_coordinator
+ create mode 100755 6210/hw1/Memory/memory_coordinator.c
+ create mode 100644 6210/hw1/Memory/memory_coordinator1.log
+ create mode 100644 6210/hw1/Memory/memory_coordinator2.log
+ create mode 100644 6210/hw1/Memory/memory_coordinator3.log
+]0;prashant@Ubuntu1404: ~/omscs/6210/hw1prashant@Ubuntu1404:~/omscs/6210/hw1$ git push
+warning: push.default is unset; its implicit value is changing in
+Git 2.0 from 'matching' to 'simple'. To squelch this message
+and maintain the current behavior after the default changes, use:
+
+  git config --global push.default matching
+
+To squelch this message and adopt the new behavior now, use:
+
+  git config --global push.default simple
+
+When push.default is set to 'matching', git will push local branches
+to the remote branches that already exist with the same name.
+
+In Git 2.0, Git will default to the more conservative 'simple'
+behavior, which only pushes the current branch to the corresponding
+remote branch that 'git pull' uses to update the current branch.
+
+See 'git help config' and search for 'push.default' for further information.
+(the 'simple' mode was introduced in Git 1.7.11. Use the similar mode
+'current' instead of 'simple' if you sometimes use older versions of Git)
+
+Username for 'https://github.com': prashnat.    as na t.a.vjti@gmail.com
+Password for 'https://prashant.a.vjti@gmail.com@github.com': 
+remote: Invalid username or password.
+fatal: Authentication failed for 'https://github.com/prash200/omscs.git/'
+]0;prashant@Ubuntu1404: ~/omscs/6210/hw1prashant@Ubuntu1404:~/omscs/6210/hw1$ git push[Kgit push
+warning: push.default is unset; its implicit value is changing in
+Git 2.0 from 'matching' to 'simple'. To squelch this message
+and maintain the current behavior after the default changes, use:
+
+  git config --global push.default matching
+
+To squelch this message and adopt the new behavior now, use:
+
+  git config --global push.default simple
+
+When push.default is set to 'matching', git will push local branches
+to the remote branches that already exist with the same name.
+
+In Git 2.0, Git will default to the more conservative 'simple'
+behavior, which only pushes the current branch to the corresponding
+remote branch that 'git pull' uses to update the current branch.
+
+See 'git help config' and search for 'push.default' for further information.
+(the 'simple' mode was introduced in Git 1.7.11. Use the similar mode
+'current' instead of 'simple' if you sometimes use older versions of Git)
+
+Username for 'https://github.com': prashant.a.vjti@gmail.com
+Password for 'https://prashant.a.vjti@gmail.com@github.com': 
+Counting objects: 13, done.
+Delta compression using up to 4 threads.
+Compressing objects:  11% (1/9)   Compressing objects:  22% (2/9)   Compressing objects:  33% (3/9)   Compressing objects:  44% (4/9)   Compressing objects:
