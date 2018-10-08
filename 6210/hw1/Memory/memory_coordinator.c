@@ -195,7 +195,7 @@ int main(int argc, char **argv)
 {
     if (argc != 2)
     {
-        printf("[ERROR] Usage: memory_coordinator <time interval(s)>.\n");
+        printf("[ERROR] Usage: Memory_coordinator <time interval(s)>.\n");
         return 1;
     }
 
