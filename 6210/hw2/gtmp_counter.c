@@ -17,32 +17,36 @@
            repeat until sense = local_sense
 */
 
-static unsigned char sense = 0;
 static unsigned int count;
-static unsigned int my_num_threads;
+static unsigned char sense[sysconf(_SC_LEVEL1_DCACHE_LINESIZE)/sizeof(char)] = 0;
+static unsigned int num_threads;
 
-void gtmp_init(int num_threads){
-  my_num_threads = count = num_threads;
+void gtmp_init(int num_threads)
+{
+  count = num_threads;
+  num_threads = num_threads;
 }
 
-void gtmp_barrier(){
-  //FIXME: maybe put the local sense on its own cache line?
-  /* posix_memalign */
-  /* LEVEL1_DCACHE_LINESIZE */
+void gtmp_barrier()
+{
+    //FIXME: maybe put the local sense on its own cache line?
+    /* posix_memalign */
+    /* LEVEL1_DCACHE_LINESIZE */
+  void *local_sense;
+  posix_memalign(&local_sense, sysconf(_SC_LEVEL1_DCACHE_LINESIZE) * omp_get_thread_num(), sysconf(_SC_LEVEL1_DCACHE_LINESIZE))
   unsigned char my_sense = sense ^ 1;
 
-  // Atomic decrement
-  if (__sync_fetch_and_sub(&count, 1) == 1) {
-    count = my_num_threads;
+  if (__sync_fetch_and_sub(&count, 1) == 1)
+  {
+    count = num_threads;
     sense = my_sense;
-  } else {
-    // spin!
-    while (sense != my_sense) {
-      // do nothing
-    }
+  }
+  else
+  {
+    while (sense != my_sense);
   }
 }
 
-void gtmp_finalize(){
-  //FIXME: anything to do here?
+void gtmp_finalize()
+{
 }
