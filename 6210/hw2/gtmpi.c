@@ -6,8 +6,6 @@
 
 int main(int argc, char **argv)
 {
-  printf("This is the serial section\n");
-
   MPI_Init(&argc, &argv);
 
   int num_processes;
@@ -21,16 +19,16 @@ int main(int argc, char **argv)
   uname(&ugnm);
 
   printf("Hello World from thread %d of %d, running on %s.\n", my_id, num_processes, ugnm.nodename);
+  fflush(stdout);
   gtmpi_barrier();
 
   printf("Goodbye world from thread %d of %d, running on %s.\n", my_id, num_processes, ugnm.nodename);
+  fflush(stdout);
   gtmpi_barrier();
-
-  MPI_Finalize();
 
   gtmpi_finalize();
 
-  printf("Back in the serial section again\n");
+  MPI_Finalize();
+
   return 0;
 }
-
