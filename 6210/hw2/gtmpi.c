@@ -15,7 +15,8 @@ int main(int argc, char **argv)
   if (num_processes != PROCESSORS)
   {
     printf("Usage: mpiexec -n %d %s\n", PROCESSORS, argv[0]);
-    printf("To change number of processors re-compile using: make %s MPI_PROCESSOR=<no. of processors>\n", argv[0] + 2);
+    printf("To change number of processors re-compile using: make %s MPI_PROCESSORS=<no. of processors>\n", argv[0] + 2);
+    fflush(stdout);
     return 1;
   }
 
@@ -26,9 +27,11 @@ int main(int argc, char **argv)
   uname(&ugnm);
 
   printf("Hello World from thread %d of %d, running on %s.\n", my_id, num_processes, ugnm.nodename);
+  fflush(stdout);
   gtmpi_barrier();
 
   printf("Goodbye world from thread %d of %d, running on %s.\n", my_id, num_processes, ugnm.nodename);
+  fflush(stdout);
   gtmpi_barrier();
 
   MPI_Finalize();

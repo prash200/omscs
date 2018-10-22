@@ -6,7 +6,9 @@ MPI_PROCESSORS ?= 2
 MPIFLAGS = -g -Wall -std=c99 -DPROCESSORS=$(MPI_PROCESSORS)
 MPICC = mpicc
 
-all: hello_openmp gtmp_counter gtmp_mcs gtmp_tree hello_mpi gtmpi_dissemination gtmpi_tournament gtmpi_counter
+rebuild: clean build
+
+build: hello_openmp gtmp_counter gtmp_mcs gtmp_tree hello_mpi gtmpi_dissemination gtmpi_tournament gtmpi_counter
 
 hello_openmp: hello_openmp.c
 	$(CC) $(OMPFLAGS) -o $@ $^ $(OMPLIBS)
@@ -23,15 +25,15 @@ gtmp_tree: gtmp.c gtmp_tree.c
 hello_mpi: hello_mpi.c
 	$(MPICC) $(MPIFLAGS) -o $@ $^
 
-gtmpi_dissemination: gtmpi.c gtmpi_dissemination.c
+gtmpi_dissemination: clean gtmpi.c gtmpi_dissemination.c
 	$(MPICC) $(MPIFLAGS) -o $@ $^
 	@echo "Usage: mpiexec -n $(MPI_PROCESSORS) ./gtmpi_dissemination"
 
-gtmpi_tournament: gtmpi.c gtmpi_tournament.c
+gtmpi_tournament: clean gtmpi.c gtmpi_tournament.c
 	$(MPICC) $(MPIFLAGS) -o $@ $^
 	@echo "Usage: mpiexec -n $(MPI_PROCESSORS) ./gtmpi_tournament"
 
-gtmpi_counter: gtmpi.c gtmpi_counter.c
+gtmpi_counter: clean gtmpi.c gtmpi_counter.c
 	$(MPICC) $(MPIFLAGS) -o $@ $^
 	@echo "Usage: mpiexec -n $(MPI_PROCESSORS) ./gtmpi_counter"
 
