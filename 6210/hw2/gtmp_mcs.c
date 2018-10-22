@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <omp.h>
+#include <stdio.h>
 #include "gtmp.h"
 
 typedef struct _treenode_t
