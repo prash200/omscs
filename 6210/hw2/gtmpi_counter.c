@@ -23,13 +23,14 @@ void gtmpi_barrier()
 
   int vpid;
   MPI_Comm_rank(MPI_COMM_WORLD, &vpid);
-  printf("Entering %d\n", vpid);
   fflush(stdout);
   
   if (vpid == 0)
   {
     for(int i = 1; i < count; i++)
     {
+      printf("0 receving message from %d\n", i);
+      fflush(stdout);
       MPI_Recv(NULL, 0, MPI_INT, i, 1, MPI_COMM_WORLD, &status);
       printf("0 recevied message from %d\n", i);
       fflush(stdout);
@@ -37,6 +38,8 @@ void gtmpi_barrier()
 
     for(int i = 1; i < count; i++)
     {
+      printf("0 sending message to %d\n", i);
+      fflush(stdout);
       MPI_Send(NULL, 0, MPI_INT, i, 1, MPI_COMM_WORLD);
       printf("0 sent message to %d\n", i);
       fflush(stdout);
@@ -44,15 +47,18 @@ void gtmpi_barrier()
   }
   else
   {
+    printf("%d sending message to 0\n", vpid);
+    fflush(stdout);
     MPI_Send(NULL, 0, MPI_INT, 0, 1, MPI_COMM_WORLD);
     printf("%d sent message to 0\n", vpid);
+    fflush(stdout);
+    printf("%d receiving message from 0\n", vpid);
     fflush(stdout);
     MPI_Recv(NULL, 0, MPI_INT, 0, 1, MPI_COMM_WORLD, &status);
     printf("%d received message from 0\n", vpid);
     fflush(stdout);
   }
 
-  printf("Leaving %d\n", vpid);
   fflush(stdout);
 }
 
