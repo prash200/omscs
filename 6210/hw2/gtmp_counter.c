@@ -1,22 +1,25 @@
+#include <stdlib.h>
 #include <omp.h>
 #include "gtmp.h"
 
 static unsigned int count;
-static unsigned short sense = 0;
 static unsigned int num_threads;
-static const cache_line_size = sysconf(_SC_LEVEL1_DCACHE_LINESIZE);
+static unsigned bool *sense;
 
-void gtmp_init(int num_threads)
+void gtmp_init(int n_threads)
 {
-  count = num_threads;
-  num_threads = num_threads;
+  count = num_threads = n_threads;
+  // To avoid false sharing, allocate a block equal to the chache line size and alligned to chache line.
+  posix_memalign((void**)&sense, LEVEL1_DCACHE_LINESIZE, LEVEL1_DCACHE_LINESIZE);
+  *sense = false;
 }
 
 void gtmp_barrier()
 {
-  short *local_sense;
-  posix_memalign((void**)&local_sense, cache_line_size, cache_line_size);
-  *local_sense = sense ^ 0x1;
+  bool *local_sense;
+  // To avoid false sharing, allocate a block equal to the chache line size and alligned to chache line.
+  posix_memalign((void**)&local_sense, LEVEL1_DCACHE_LINESIZE, LEVEL1_DCACHE_LINESIZE);
+  *local_sense = !*sense;
 
   if (__sync_fetch_and_sub(&count, 1) == 1)
   {
@@ -33,4 +36,5 @@ void gtmp_barrier()
 
 void gtmp_finalize()
 {
+  free((void*)sense);
 }

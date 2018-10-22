@@ -1,6 +1,5 @@
 #include <stdlib.h>
 #include <mpi.h>
-#include <stdio.h>
 #include "gtmpi.h"
 
 /** Things changed to optimize:

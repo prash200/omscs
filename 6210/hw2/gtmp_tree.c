@@ -1,5 +1,4 @@
 #include <stdlib.h>
-#include <stdio.h>
 #include <omp.h>
 #include "gtmp.h"
 
@@ -29,7 +28,6 @@ typedef struct _node_t
 static int num_leaves;
 static int num_nodes;
 static node_t **nodes;
-static const cache_line_size = sysconf(_SC_LEVEL1_DCACHE_LINESIZE);
 
 void gtmp_barrier_aux(node_t* node, int sense);
 
@@ -55,7 +53,7 @@ void gtmp_init (int num_threads)
 
   for (int i = 0; i < num_nodes; i++)
   {
-    posix_memalign((void**)&(nodes[i]), cache_line_size, cache_line_size);
+    posix_memalign((void**)&(nodes[i]), LEVEL1_DCACHE_LINESIZE, LEVEL1_DCACHE_LINESIZE);
 
     curnode = _gtmp_get_node(i);
     curnode->k = i < num_threads - 1 ? 2 : 1;
@@ -102,9 +100,9 @@ void gtmp_finalize()
 
   for (i = 0; i < num_nodes; i++)
   {
-    free(nodes[i]);
+    free((void*)nodes[i]);
   } 
 
-  free(nodes);
+  free((void*)nodes);
 }
 
