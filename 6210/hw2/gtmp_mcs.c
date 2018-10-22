@@ -20,19 +20,19 @@ void gtmp_init(int n_threads)
 
   for (int i = 0; i < count; i++)
   {
-    if (4 * i + 4 + 1 < count)
+    if (4 * i + 4 < count)
     {
       nodes[i].have_child = 15;
     }
-    else if (4 * i + 3 + 1 < count)
+    else if (4 * i + 3 < count)
     {
       nodes[i].have_child = 7;
     }
-    else if (4 * i + 2 + 1 < count)
+    else if (4 * i + 2 < count)
     {
       nodes[i].have_child = 3;
     }
-    else if (4 * i + 1 + 1 < count)
+    else if (4 * i + 1 < count)
     {
       nodes[i].have_child = 1;
     }
@@ -42,6 +42,8 @@ void gtmp_init(int n_threads)
     }
 
     nodes[i].child_not_ready = nodes[i].have_child;
+    printf("nodes[%d].child_not_ready %d\n", i, nodes[i].child_not_ready);
+    printf("nodes[%d].child_not_ready %d\n", i, nodes[i].have_child);
 
     nodes[i].sense = 0;
   }
