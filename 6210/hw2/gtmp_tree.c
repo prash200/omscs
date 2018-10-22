@@ -36,9 +36,9 @@ static int num_leaves;
 static int num_nodes;
 static node_t **nodes;
 
-void gtmp_barrier_aux(node_t* node, short sense);
+void gtmp_barrier_aux(node_t* node, short* sense);
 
-inline node_t* _gtmp_get_node(int i)
+static inline node_t* _gtmp_get_node(int i)
 {
   return nodes[i];
 }
@@ -68,7 +68,7 @@ void gtmp_init (int n_threads)
     posix_memalign((void**)&(nodes[i]), LEVEL1_DCACHE_LINESIZE, LEVEL1_DCACHE_LINESIZE);
 
     curr_node = _gtmp_get_node(i);
-    curr_node->k = i < num_threads - 1 ? 2 : 1;
+    curr_node->k = i < n_threads - 1 ? 2 : 1;
     curr_node->count = curr_node->k;
     curr_node->sense = 0;
     curr_node->parent = i == 0 ? NULL : _gtmp_get_node((i - 1) / 2);
