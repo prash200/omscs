@@ -4,22 +4,22 @@
 
 static unsigned int count;
 static unsigned int num_threads;
-static unsigned bool *sense;
+static short *sense;
 
 void gtmp_init(int n_threads)
 {
   count = num_threads = n_threads;
   // To avoid false sharing, allocate a block equal to the chache line size and alligned to chache line.
   posix_memalign((void**)&sense, LEVEL1_DCACHE_LINESIZE, LEVEL1_DCACHE_LINESIZE);
-  *sense = false;
+  *sense = 0;
 }
 
 void gtmp_barrier()
 {
-  bool *local_sense;
+  short *local_sense;
   // To avoid false sharing, allocate a block equal to the chache line size and alligned to chache line.
   posix_memalign((void**)&local_sense, LEVEL1_DCACHE_LINESIZE, LEVEL1_DCACHE_LINESIZE);
-  *local_sense = !*sense;
+  *local_sense = *sense ^ 0x1;
 
   if (__sync_fetch_and_sub(&count, 1) == 1)
   {
