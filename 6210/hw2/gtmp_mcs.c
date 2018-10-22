@@ -3,101 +3,105 @@
 #include <omp.h>
 #include "gtmp.h"
 
-typedef struct _treenode_t
+typedef struct treenode_s
 {
-  unsigned short parent_sense;
-  unsigned short *parent_pointer;
-  unsigned short *child_pointers[2];
-  unsigned short have_child[4];
-  unsigned short child_not_ready[4];
-  unsigned short dummy;
-} treenode_t;
+  unsigned char parentsense;
+  unsigned char *parentpointer;
+  unsigned char *childpointers[2];
+  unsigned char havechild[4];
+  unsigned char childnotready[4];
+  unsigned char dummy;
+} treenode;
 
-static treenode_t *nodes;
+static treenode *nodes;
 
 static unsigned int vpid_next;
 static unsigned int sense_init;
-static unsigned int num_procs;
+static int num_procs;
 
-void gtmp_init(unsigned int n_procs)
+
+void gtmp_init(int num_threads)
 {
+  int i, j;
+
+  num_procs = num_threads;
   vpid_next = 0;
   sense_init = 1;
-  num_procs = n_procs;
-  nodes = (treenode_t*) malloc(num_procs * sizeof(treenode_t));
-  
-  for (int i = 0; i < num_procs; i++)
+  nodes = (treenode *) malloc(num_procs * sizeof(treenode));
+
+  for (i = 0; i < num_procs; i++)
   {
-    for (int j = 0; j < 4; j++)
+    for (j = 0; j < 4; j++)
     {
       if (4 * i + j + 1 < num_procs)
       {
-        nodes[i].have_child[j] = 1;
+        nodes[i].havechild[j] = 1;
       }
       else
       {
-        nodes[i].have_child[j] = 0;
+        nodes[i].havechild[j] = 0;
       }
 
-      nodes[i].child_not_ready[j] = nodes[i].have_child[j];
+      nodes[i].childnotready[j] = nodes[i].havechild[j];
     }
 
     if (i != 0)
     {
-      nodes[i].parent_pointer = &(nodes[(i - 1) / 4].child_not_ready[(i - 1) % 4]);
+      nodes[i].parentpointer = &(nodes[(i-1)/4].childnotready[(i-1) % 4]);
     }
     else
     {
-      nodes[i].parent_pointer = &(nodes[i].dummy);
+      nodes[i].parentpointer = &(nodes[i].dummy);
     }
 
     if (2 * i + 1 < num_procs)
     {
-      nodes[i].child_pointers[0] = &(nodes[2 * i + 1].parent_sense);
+      nodes[i].childpointers[0] = &(nodes[2*i+1].parentsense);
     }
     else
     {
-      nodes[i].child_pointers[0] = &(nodes[i].dummy);
+      nodes[i].childpointers[0] = &(nodes[i].dummy);
     }
 
     if (2 * i + 2 < num_procs)
     {
-      nodes[i].child_pointers[1] = &(nodes[2 * i + 2].parent_sense);
+      nodes[i].childpointers[1] = &(nodes[2*i+2].parentsense);
     }
     else
     {
-      nodes[i].child_pointers[1] = &(nodes[i].dummy);
+      nodes[i].childpointers[1] = &(nodes[i].dummy);
     }
 
-    nodes[i].parent_sense = 0;
+    nodes[i].parentsense = 0;
   }
 }
 
 void gtmp_barrier()
 {
   unsigned int vpid = __sync_fetch_and_add(&vpid_next, 1) % num_procs;
-  unsigned short sense = sense_init;
+  unsigned char sense = sense_init;
+  int i;
 
-  while (nodes[vpid].child_not_ready[0] |
-    nodes[vpid].child_not_ready[1] | 
-    nodes[vpid].child_not_ready[2] |
-    nodes[vpid].child_not_ready[3]);
+  while (nodes[vpid].childnotready[0] |
+    nodes[vpid].childnotready[1] | 
+    nodes[vpid].childnotready[2] |
+    nodes[vpid].childnotready[3]);
 
-  for (int i = 0; i < 4; i++)
+  for (i = 0; i < 4; i++)
   {
-    nodes[vpid].child_not_ready[i] = nodes[vpid].have_child[i];
+    nodes[vpid].childnotready[i] = nodes[vpid].havechild[i];
   }
 
-  *(nodes[vpid].parent_pointer) = 0;
+  *(nodes[vpid].parentpointer) = 0;
 
   if (vpid != 0)
   {
-    while (nodes[vpid].parent_sense != sense);
+    while (nodes[vpid].parentsense != sense);
   }
 
-  *nodes[vpid].child_pointers[0] = sense;
-  *nodes[vpid].child_pointers[1] = sense;
-  
+  *nodes[vpid].childpointers[0] = sense;
+  *nodes[vpid].childpointers[1] = sense;
+
   sense_init = !sense;
 }
 

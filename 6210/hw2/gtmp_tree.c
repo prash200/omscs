@@ -3,7 +3,7 @@
 #include <omp.h>
 #include "gtmp.h"
 
-/** Things changed to optimize: 
+/** Things changed to optimize:
   (1-4: put each node on its own cache line)
   1. Make nodes an array of node pointers instead of an array of nodes
   2. Put each element of nodes on different cache line to avoid false sharing

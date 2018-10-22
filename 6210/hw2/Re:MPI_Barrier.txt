@@ -51,3 +51,6 @@ the numbers, or are the code sections being barriered dominating the run time
 of your application?  The MCS algorithm might benefit from some level of 
 parallelism in both the arrival and wakeup trees if the barriers were occurring
 in quick succession of one another.
+
+Thanks!
+Prashant

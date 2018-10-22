@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include "gtmpi.h"
 
-/**
+/** Things changed to optimize:
  *  1. Have one master node, allowing all other nodes to signal it
  *  2. Have the master node signal all other nodes once it has heard from all the others
  *     These changes allow for the O(N^2) messages to become O(N) messages
