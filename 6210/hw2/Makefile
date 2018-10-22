@@ -2,7 +2,8 @@ OMPFLAGS = -g -Wall -std=c99 -fopenmp -DLEVEL1_DCACHE_LINESIZE=`getconf LEVEL1_D
 OMPLIBS = -lgomp
 CC = gcc
 
-MPIFLAGS = -g -Wall -std=c99
+MPI_PROCESSORS ?= 2
+MPIFLAGS = -g -Wall -std=c99 -DPROCESSORS=$(MPI_PROCESSORS)
 MPICC = mpicc
 
 all: hello_openmp gtmp_counter gtmp_mcs gtmp_tree hello_mpi gtmpi_dissemination gtmpi_tournament gtmpi_counter
