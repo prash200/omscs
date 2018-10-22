@@ -55,7 +55,7 @@ void gtmp_barrier()
   printf("nodes[%d].child_not_ready %d\n", thread_num, nodes[thread_num].child_not_ready);
   while (nodes[thread_num].child_not_ready != 0)
   {
-    printf("nodes[%d].child_not_ready %d\n", thread_num, nodes[thread_num].child_not_ready);
+    //printf("nodes[%d].child_not_ready %d\n", thread_num, nodes[thread_num].child_not_ready);
   }
 
   nodes[thread_num].child_not_ready = nodes[thread_num].have_child;
