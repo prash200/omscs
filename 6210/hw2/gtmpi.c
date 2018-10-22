@@ -26,11 +26,11 @@ int main(int argc, char **argv)
   struct utsname ugnm;
   uname(&ugnm);
 
-  printf("Hello World from thread %d of %d, running on %s.\n", my_id, num_processes, ugnm.nodename);
+  printf("Hello World from processor %d of %d, running on %s.\n", my_id, num_processes, ugnm.nodename);
   fflush(stdout);
   gtmpi_barrier();
 
-  printf("Goodbye world from thread %d of %d, running on %s.\n", my_id, num_processes, ugnm.nodename);
+  printf("Goodbye world from processor %d of %d, running on %s.\n", my_id, num_processes, ugnm.nodename);
   fflush(stdout);
   gtmpi_barrier();
 
