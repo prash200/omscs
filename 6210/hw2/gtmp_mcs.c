@@ -42,8 +42,6 @@ void gtmp_init(int n_threads)
     }
 
     nodes[i].child_not_ready = nodes[i].have_child;
-    printf("nodes[%d].child_not_ready %d\n", i, nodes[i].child_not_ready);
-    printf("nodes[%d].child_not_ready %d\n", i, nodes[i].have_child);
 
     nodes[i].sense = 0;
   }
@@ -54,9 +52,10 @@ void gtmp_barrier()
   int thread_num = omp_get_thread_num();
   printf("thread %d\n", thread_num);
 
+  printf("nodes[%d].child_not_ready %d\n", thread_num, nodes[thread_num].child_not_ready);
   while (nodes[thread_num].child_not_ready != 0)
   {
-    //printf("nodes[%d].child_not_ready %d\n", thread_num, nodes[thread_num].child_not_ready);
+    printf("nodes[%d].child_not_ready %d\n", thread_num, nodes[thread_num].child_not_ready);
   }
 
   nodes[thread_num].child_not_ready = nodes[thread_num].have_child;
