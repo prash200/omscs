@@ -26,11 +26,9 @@ int main(int argc, char **argv)
 
 #pragma omp parallel
   {
-    int num_threads = omp_get_num_threads();
-
+    int thread_num = omp_get_thread_num();
     struct utsname ugnm;
     uname(&ugnm);
-
     printf("Hello World from thread %d of %d, running on %s.\n", thread_num, num_threads, ugnm.nodename);
 
     gtmp_barrier();
@@ -38,11 +36,9 @@ int main(int argc, char **argv)
 
 #pragma omp parallel
   {    
-    int num_threads = omp_get_num_threads();
-
+    int thread_num = omp_get_thread_num();
     struct utsname ugnm;
     uname(&ugnm);
-
     printf("Goodbye World from thread %d of %d, running on %s.\n", thread_num, num_threads, ugnm.nodename);
 
     gtmp_barrier();
