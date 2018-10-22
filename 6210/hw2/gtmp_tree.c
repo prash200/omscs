@@ -3,38 +3,7 @@
 #include <omp.h>
 #include "gtmp.h"
 
-/*
-
-    From the MCS Paper: A software combining tree barrier with optimized wakeup
-
-    type node = record
-        k : integer //fan in of this node
-	count : integer // initialized to k
-	locksense : Boolean // initially false
-	parent : ^node // pointer to parent node; nil if root
-
-	shared nodes : array [0..P-1] of node
-	    //each element of nodes allocated in a different memory module or cache line
-
-	processor private sense : Boolean := true
-	processor private mynode : ^node // my group's leaf in the combining tree 
-
-	procedure combining_barrier
-	    combining_barrier_aux (mynode) // join the barrier
-	    sense := not sense             // for next barrier
-	    
-
-	procedure combining_barrier_aux (nodepointer : ^node)
-	    with nodepointer^ do
-	        if fetch_and_decrement (&count) = 1 // last one to reach this node
-		    if parent != nil
-		        combining_barrier_aux (parent)
-		    count := k // prepare for next barrier
-		    locksense := not locksense // release waiting processors
-		repeat until locksense = sense
-*/
-
-/** Things changed by tupty to optimize: 
+/** Things changed to optimize: 
   (1-4: put each node on its own cache line)
   1. Make nodes an array of node pointers instead of an array of nodes
   2. Put each element of nodes on different cache line to avoid false sharing
@@ -49,88 +18,90 @@
   6. Make _gtmp_get_node an inline function
 */
 
-
-typedef struct _node_t{
+typedef struct _node_t
+{
   int k;
   int count;
-  int locksense;
+  int lock_sense;
   struct _node_t* parent;
 } node_t;
 
 static int num_leaves;
-static int num_nodes; /* 3. Static for cleanup purposes */
+static int num_nodes;
 static node_t **nodes;
+static const cache_line_size = sysconf(_SC_LEVEL1_DCACHE_LINESIZE);
 
 void gtmp_barrier_aux(node_t* node, int sense);
 
-/* 6: Make this inline */
-inline node_t* _gtmp_get_node(int i){
+inline node_t* _gtmp_get_node(int i)
+{
   return nodes[i];
 }
 
-void gtmp_init(int num_threads){
-  int i, v;
+void gtmp_init (int num_threads)
+{
   node_t* curnode;
   
-  /*Setting constants */
-  v = 1;
-  while( v < num_threads)
+  int v = 1;
+  while ( v < num_threads)
+  {
     v *= 2;
+  }
   
   num_nodes = v - 1;
   num_leaves = v/2;
 
-  /* Setting up the tree */
-  /* 1. Allocate the array of node pointers */
-  nodes = (node_t **) malloc(num_nodes * sizeof(node_t *));
+  nodes = (node_t**)malloc(num_nodes * sizeof(node_t*));
 
-  for(i = 0; i < num_nodes; i++){
-    /* 2. Allocate each node on its own cache line */
-    /* Returns 0 on success, nonzero otherwise */
-    posix_memalign((void **) &(nodes[i]), LEVEL1_DCACHE_LINESIZE, sizeof(node_t));
+  for (int i = 0; i < num_nodes; i++)
+  {
+    posix_memalign((void**)&(nodes[i]), cache_line_size, cache_line_size);
 
     curnode = _gtmp_get_node(i);
     curnode->k = i < num_threads - 1 ? 2 : 1;
     curnode->count = curnode->k;
-    curnode->locksense = 0;
-    curnode->parent = _gtmp_get_node((i-1)/2);
+    curnode->lock_sense = 0;
+    curnode->parent = _gtmp_get_node((i - 1) / 2);
   }
   
   curnode = _gtmp_get_node(0);
   curnode->parent = NULL;
 }
 
-void gtmp_barrier(){
+void gtmp_barrier()
+{
   node_t* mynode;
   int sense;
 
   mynode = _gtmp_get_node(num_leaves - 1 + (omp_get_thread_num() % num_leaves));
   
-  /* 
-     Rather than correct the sense variable after the call to 
-     the auxilliary method, we set it correctly before.
-   */
-  sense = !mynode->locksense;
+  sense = !mynode->lock_sense;
   
   gtmp_barrier_aux(mynode, sense);
 }
 
-void gtmp_barrier_aux(node_t* node, int sense){
-  /* Replace omp critical section with atomic instruction */
-  if(1 == __sync_fetch_and_sub(&node->count, 1)){
+void gtmp_barrier_aux(node_t* node, int sense)
+{
+  if(__sync_fetch_and_sub(&node->count, 1) == 1)
+  {
     if(node->parent != NULL)
+    {
       gtmp_barrier_aux(node->parent, sense);
+    }
+
     node->count = node->k;
-    node->locksense = !node->locksense;
+    node->lock_sense = !node->lock_sense;
   }
-  while (node->locksense != sense);
+
+  while (node->lock_sense != sense);
 }
 
-void gtmp_finalize(){
+void gtmp_finalize()
+{
   int i;
 
-  /* 4. Free up individual nodes */
-  for (i = 0; i < num_nodes; i++) {
+  for (i = 0; i < num_nodes; i++)
+  {
     free(nodes[i]);
   } 
 

@@ -6,7 +6,15 @@ To run:
 1. create and start virtual machines.
 2. run job on virtual machines.
 3. open terminal.
-4. run command "./Memory_coordinator <period(s)>"
+4. run command "./memory_coordinator <period(s)>"
 5. see that free memory on each of the virtual machines is almost the same. 
 
 Algorithm:
+The algorithm balances free memory in each of the virtual machine. In each run of the memmory_coordinator it does the following:
+1. Determine the unused memory and actual memory in each VM.
+2. Find the Average unused memory in each VM.
+3. Set the new memory in each VM equal to sum of it used memory and average free memory found in step 2.
+	3.1. Used memory in each VM = actual memory - unused memory
+	3.2. New memory in each VM = used memory + average unused memory.
+	3.3. Round new memory to the closet multiple of 1024.
+4. Allocated memory is reclaimed by host if the least wastage in more than 20%. In other words, if the least ratio of unused and actual memory is more than 20%, the host reclaims the memory such that least wastage is set to 20%.

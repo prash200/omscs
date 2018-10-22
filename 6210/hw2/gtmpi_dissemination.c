@@ -3,57 +3,26 @@
 #include <mpi.h>
 #include "gtmpi.h"
 
-/*
-    From the MCS Paper: The scalable, distributed dissemination barrier with only local spinning.
+static unsigned int num_procs;
+static unsigned int num_rounds;
+static unsigned int cur_bar;
+static unsigned int sense_init;
+static unsigned int parity_init;
 
-    type flags = record
-        myflags : array [0..1] of array [0..LogP - 1] of Boolean
-	partnerflags : array [0..1] of array [0..LogP - 1] of ^Boolean
-	
-    processor private parity : integer := 0
-    processor private sense : Boolean := true
-    processor private localflags : ^flags
-
-    shared allnodes : array [0..P-1] of flags
-        //allnodes[i] is allocated in shared memory
-	//locally accessible to processor i
-
-    //on processor i, localflags points to allnodes[i]
-    //initially allnodes[i].myflags[r][k] is false for all i, r, k
-    //if j = (i+2^k) mod P, then for r = 0 , 1:
-    //    allnodes[i].partnerflags[r][k] points to allnodes[j].myflags[r][k]
-
-    procedure dissemination_barrier
-        for instance : integer :0 to LogP-1
-	    localflags^.partnerflags[parity][instance]^ := sense
-	    repeat until localflags^.myflags[parity][instance] = sense
-	if parity = 1
-	    sense := not sense
-	parity := 1 - parity
-*/
-
-static int num_procs, num_rounds, cur_bar;
-static char sense_init, parity_init;
-
-/**
- * Ceiling of log base 2 for an integer value
- */
-static float ceillog2(int val) {
+static int ceillog2(int val) 
+{
   int i = 0;
-
-  if (val > 0) {
-    while (val >> i != 1) {
-      i++;
-    }
-  } else {
-    //we should throw an exception here
+  while (val >> i != 1)
+  {
+    i++;
   }
 
   return ((1 << i) == val) ? i : i+1;
 }
 
-void gtmpi_init(int num_threads){
-  num_procs = num_threads;
+void gtmpi_init(int n_procs)
+{
+  num_procs = n_procs;
   num_rounds = ceillog2(num_procs);
   sense_init = 1;
   parity_init = 0;

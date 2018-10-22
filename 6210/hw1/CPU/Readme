@@ -10,3 +10,13 @@ To run:
 5. see that load on physical cpus are balanced. 
 
 Algorithm:
+The algorithm balances load across all pcups. In each run of the vcpu_scheduler, it does the following:
+1. Determine load on each vcpu and each pcpu.
+2. Use these stats to balance load across pcpus. To balance:
+	2.1. Sort vcpu load in decending order.
+	2.2. Create a min-heap of pcpu load.
+	2.3. Iterate over the sorted list of vcpu load and assign it to pcup with the minimum load (returned from min-heap).
+	2.4. Upadte load of this (2.3) pcpu by adding this (2.3) vcup load.
+	2.5. Update the heap.
+3. This algorithm is not optimal allocation, solving for optimal allocation is np-complete problem (set-partition for equal workload division).
+4. But the algo gives very good results in  practice by allocating maximum loaded vcpu to minimum loaded pcpu in each iteration.
