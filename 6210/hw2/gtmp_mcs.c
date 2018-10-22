@@ -52,7 +52,7 @@ void gtmp_barrier()
 
   while (nodes[thread_num].child_not_ready != 0);
 
-  nodes[thread_num].child_not_ready = have_child;
+  nodes[thread_num].child_not_ready = nodes[thread_num].have_child;
 
   nodes[(thread_num - 1) / 4].child_not_ready |= (1 << (thread_num % 4));
 
