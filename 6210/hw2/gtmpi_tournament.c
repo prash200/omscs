@@ -17,7 +17,7 @@ typedef struct round
 } round_t;
 
 static round_t **rounds;
-static int num_procs, num_rounds;
+static int count, num_rounds;
 
 static int ceillog2(int val)
 {
@@ -31,16 +31,16 @@ static int ceillog2(int val)
   return ((1 << i) == val) ? i : i+1;
 }
 
- void gtmpi_init(int num_threads)
+ void gtmpi_init(int n_threads)
  {
-  num_procs = num_threads;
-  num_rounds = ceillog2(num_procs) + 1;
+  count = n_threads;
+  num_rounds = ceillog2(count) + 1;
 
-  rounds = (round_t **) malloc(num_procs * sizeof(round_t *));
+  rounds = (round_t**)malloc(count * sizeof(round_t *));
   
-  for (int i = 0; i < num_procs; i++)
+  for (int i = 0; i < count; i++)
   {
-    rounds[i] = (round_t *) malloc(num_rounds * sizeof(round_t));
+    rounds[i] = (round_t*)malloc(num_rounds * sizeof(round_t));
 
     for (int j = 0; j < num_rounds; j++)
     {
@@ -48,11 +48,11 @@ static int ceillog2(int val)
       
       if (j > 0)
       {
-        if ((i % (1 << j) == 0) && (i + (1 << (j-1)) < num_procs) && ((1 << j) < num_procs))
+        if ((i % (1 << j) == 0) && (i + (1 << (j-1)) < count) && ((1 << j) < count))
         {
           rounds[i][j].role = WINNER;
         }
-        else if ((i % (1 << j) == 0) && (i + (1 << (j-1)) >= num_procs))
+        else if ((i % (1 << j) == 0) && (i + (1 << (j-1)) >= count))
         {
           rounds[i][j].role = BYE;
         }
@@ -60,7 +60,7 @@ static int ceillog2(int val)
         {
           rounds[i][j].role = LOSER;
         }
-        else if ((i == 0) && ((1 << j) >= num_procs))
+        else if ((i == 0) && ((1 << j) >= count))
         {
           rounds[i][j].role = CHAMPION;
         }
@@ -171,7 +171,7 @@ void gtmpi_finalize()
 {
   int i;
   
-  for (i = 0; i < num_procs; i++)
+  for (i = 0; i < count; i++)
   {
     free(rounds[i]);
   }
