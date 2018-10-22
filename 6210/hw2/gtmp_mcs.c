@@ -56,13 +56,13 @@ void gtmp_barrier()
 
   while (nodes[thread_num].child_not_ready != 0)
   {
-    printf("nodes[%d].child_not_ready %d\n", thread_num, nodes[thread_num].child_not_ready);
+    //printf("nodes[%d].child_not_ready %d\n", thread_num, nodes[thread_num].child_not_ready);
   }
 
   nodes[thread_num].child_not_ready = nodes[thread_num].have_child;
   printf("nodes[%d].child_not_ready %d\n", thread_num, nodes[thread_num].child_not_ready);
 
-  nodes[(thread_num - 1) / 4].child_not_ready |= (1 << ((thread_num + 3) % 4));
+  nodes[(thread_num - 1) / 4].child_not_ready &= ~(1 << ((thread_num + 3) % 4));
   printf("nodes[%d].child_not_ready %d\n", (thread_num - 1) / 4, nodes[(thread_num - 1) / 4].child_not_ready);
 
   unsigned short local_sense = nodes[thread_num].sense ^ 0x1;
