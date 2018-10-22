@@ -32,4 +32,4 @@ gtmpi_counter: gtmpi.c gtmpi_counter.c
 	$(MPICC) $(MPIFLAGS) -o $@ $^
 
 clean:
-	rm -rf *.o hello_openmp hello_mpi_* gtmp_* gtmpi_*
+	rm -rf *.o hello_openmp gtmp_counter gtmp_mcs gtmp_tree hello_mpi gtmpi_dissemination gtmpi_tournament gtmpi_counter
