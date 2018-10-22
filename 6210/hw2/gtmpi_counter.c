@@ -22,6 +22,8 @@ void gtmpi_barrier()
 
   int vpid;
   MPI_Comm_rank(MPI_COMM_WORLD, &vpid);
+  printf("Entering %d\n", vpid);
+  fflush(stdout);
   
   if (vpid == 0)
   {
@@ -40,6 +42,9 @@ void gtmpi_barrier()
     MPI_Send(NULL, 0, MPI_INT, 0, 1, MPI_COMM_WORLD);
     MPI_Recv(NULL, 0, MPI_INT, 0, 1, MPI_COMM_WORLD, &status);
   }
+
+  printf("Leaving %d\n", vpid);
+  fflush(stdout);
 }
 
 void gtmpi_finalize()
