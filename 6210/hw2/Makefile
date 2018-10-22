@@ -2,12 +2,10 @@ OMPFLAGS = -g -Wall -std=c99 -fopenmp -DLEVEL1_DCACHE_LINESIZE=`getconf LEVEL1_D
 OMPLIBS = -lgomp
 CC = gcc
 
-#MPICH = /usr/lib64/openmpi/1.4-gcc
-MPIFLAGS = -g -Wall -std=c99 #-I$(MPICH)/include
-#MPICC = /opt/openmpi-1.4.3-gcc44/bin/mpicc
+MPIFLAGS = -g -Wall -std=c99
 MPICC = mpicc
 
-all: hello_openmp gtmp_counter gtmp_mcs gtmp_tree hello_mpi gtmpi_dissemination gtmpi_tournament gtmpi_tournament
+all: hello_openmp gtmp_counter gtmp_mcs gtmp_tree hello_mpi gtmpi_dissemination gtmpi_tournament gtmpi_counter
 
 hello_openmp: hello_openmp.c
 	$(CC) $(OMPFLAGS) -o $@ $^ $(OMPLIBS)
@@ -30,7 +28,7 @@ gtmpi_dissemination: gtmpi.c gtmpi_dissemination.c
 gtmpi_tournament: gtmpi.c gtmpi_tournament.c
 	$(MPICC) $(MPIFLAGS) -o $@ $^
 
-gtmpi_tournament: gtmpi.c gtmpi_counter.c
+gtmpi_counter: gtmpi.c gtmpi_counter.c
 	$(MPICC) $(MPIFLAGS) -o $@ $^
 
 clean:
