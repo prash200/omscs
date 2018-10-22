@@ -14,8 +14,8 @@ int main(int argc, char **argv)
   MPI_Comm_size(MPI_COMM_WORLD, &num_processes);
   if (num_processes != PROCESSORS)
   {
-    printf("Usage: mpiexec -n %d ./%s\n", PROCESSORS, argv[0]);
-    printf("To change number of processors re-compile using: make %s MPI_PROCESSOR=<no. of processors>\n", argv[0]);
+    printf("Usage: mpiexec -n %d %s\n", PROCESSORS, argv[0]);
+    printf("To change number of processors re-compile using: make %s MPI_PROCESSOR=<no. of processors>\n", argv[0][2]);
     return 1;
   }
 

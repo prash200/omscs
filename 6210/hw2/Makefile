@@ -25,12 +25,15 @@ hello_mpi: hello_mpi.c
 
 gtmpi_dissemination: gtmpi.c gtmpi_dissemination.c
 	$(MPICC) $(MPIFLAGS) -o $@ $^
+	@echo "Usage: mpiexec -n $(MPI_PROCESSORS) ./gtmpi_dissemination"
 
 gtmpi_tournament: gtmpi.c gtmpi_tournament.c
 	$(MPICC) $(MPIFLAGS) -o $@ $^
+	@echo "Usage: mpiexec -n $(MPI_PROCESSORS) ./gtmpi_tournament"
 
 gtmpi_counter: gtmpi.c gtmpi_counter.c
 	$(MPICC) $(MPIFLAGS) -o $@ $^
+	@echo "Usage: mpiexec -n $(MPI_PROCESSORS) ./gtmpi_counter"
 
 clean:
 	rm -rf *.o hello_openmp gtmp_counter gtmp_mcs gtmp_tree hello_mpi gtmpi_dissemination gtmpi_tournament gtmpi_counter
