@@ -22,7 +22,6 @@ void gtmpi_barrier()
 
   int vpid;
   MPI_Comm_rank(MPI_COMM_WORLD, &vpid);
-  fflush(stdout);
   
   if (vpid == 0)
   {
