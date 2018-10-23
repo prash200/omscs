@@ -65,6 +65,10 @@ void gtmp_barrier()
     printf("local_sense %hu\n", local_sense);
     while (nodes[thread_num].sense != local_sense);
   }
+  else
+  {
+    nodes[0].sense = local_sense;
+  }
 
   if ((thread_num * 2 + 1) < count)
   {
