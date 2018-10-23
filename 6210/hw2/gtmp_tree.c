@@ -61,7 +61,6 @@ void gtmp_init (int n_threads)
   num_leaves = v / 2;
 
   nodes = (node_t**)malloc(num_nodes * sizeof(node_t*));
-
   for (int i = 0; i < num_nodes; i++)
   {
     // To avoid false sharing, allocate a block equal to the chache line size.
@@ -79,14 +78,12 @@ void gtmp_init (int n_threads)
 
 void gtmp_barrier()
 {
-  node_t *my_node = _gtmp_get_node(num_leaves - 1 + (omp_get_thread_num() % num_leaves));
-
   short *local_sense;
   // To avoid false sharing, allocate a block equal to the chache line size.
   posix_memalign((void**)&local_sense, LEVEL1_DCACHE_LINESIZE, LEVEL1_DCACHE_LINESIZE);
-  *local_sense = my_node->sense ^ 0x1;
+  *local_sense = _gtmp_get_node(num_leaves - 1 + (omp_get_thread_num() % num_leaves))->sense ^ 0x1;
 
-  gtmp_barrier_aux(my_node, local_sense);
+  gtmp_barrier_aux(_gtmp_get_node(num_leaves - 1 + (omp_get_thread_num() % num_leaves)), local_sense);
 
   free((void*)local_sense);
 }
@@ -109,12 +106,10 @@ void gtmp_barrier_aux(node_t* node, short* local_sense)
 
 void gtmp_finalize()
 {
-  int i;
-
-  for (i = 0; i < num_nodes; i++)
+  for (int i = 0; i < num_nodes; i++)
   {
     free((void*)nodes[i]);
-  } 
+  }
 
   free((void*)nodes);
 }

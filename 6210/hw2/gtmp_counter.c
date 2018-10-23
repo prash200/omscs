@@ -4,7 +4,7 @@
 
 static unsigned int count;
 static unsigned int num_threads;
-static short *sense;
+static unsigned short *sense;
 
 void gtmp_init(int n_threads)
 {
@@ -16,7 +16,7 @@ void gtmp_init(int n_threads)
 
 void gtmp_barrier()
 {
-  short *local_sense;
+  unsigned short *local_sense;
   // To avoid false sharing, allocate a block equal to the chache line size.
   posix_memalign((void**)&local_sense, LEVEL1_DCACHE_LINESIZE, LEVEL1_DCACHE_LINESIZE);
   *local_sense = *sense ^ 0x1;
