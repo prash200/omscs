@@ -52,29 +52,32 @@ void gtmp_barrier()
   int thread_num = omp_get_thread_num();
   printf("thread %d\n", thread_num);
 
-  printf("nodes[%d].child_not_ready %d\n", thread_num, nodes[thread_num].child_not_ready);
   while (nodes[thread_num].child_not_ready != 0);
 
   nodes[thread_num].child_not_ready = nodes[thread_num].have_child;
-  printf("nodes[%d].child_not_ready %d\n", thread_num, nodes[thread_num].child_not_ready);
 
   unsigned short local_sense = nodes[thread_num].sense ^ 0x1;
+  printf("nodes[%d].sense %hu\n", thread_num, nodes[thread_num].sense);
   if (thread_num != 0)
   {
     nodes[(thread_num - 1) / 4].child_not_ready &= ~(1 << ((thread_num + 3) % 4));
-    printf("nodes[%d].child_not_ready %d\n", (thread_num - 1) / 4, nodes[(thread_num - 1) / 4].child_not_ready);
 
+    printf("local_sense %hu\n", local_sense);
     while (nodes[thread_num].sense != local_sense);
   }
 
-  if (thread_num * 2 + 1 < count)
+  if ((thread_num * 2 + 1) < count)
   {
+    printf("nodes[%d].sense %hu\n", thread_num * 2 + 1, nodes[thread_num * 2 + 1].sense);
     nodes[thread_num * 2 + 1].sense = local_sense;
+    printf("nodes[%d].sense %hu\n", thread_num * 2 + 1, nodes[thread_num * 2 + 1].sense);
   }
 
-  if (thread_num * 2 + 2 < count)
+  if ((thread_num * 2 + 2) < count)
   {
+    printf("nodes[%d].sense %hu\n", thread_num * 2 + 2, nodes[thread_num * 2 + 2].sense);
     nodes[thread_num * 2 + 2].sense = local_sense;
+    printf("nodes[%d].sense %hu\n", thread_num * 2 + 2, nodes[thread_num * 2 + 2].sense);
   }
 }
 
