@@ -2,12 +2,12 @@
 #include <mpi.h>
 #include "gtmpi.h"
 
-#define WINNER (0)
-#define LOSER (1)
-#define BYE (2)
-#define CHAMPION (3)
-#define DROPOUT (4)
-#define NONE (5)
+#define WINNER 0
+#define LOSER 1
+#define BYE 2
+#define CHAMPION 3
+#define DROPOUT 4
+#define NONE 5
 
 typedef struct round
 {
@@ -28,7 +28,7 @@ static int ceillog2(int val)
     i++;
   }
 
-  return ((1 << i) == val) ? i : i+1;
+  return ((1 << i) == val) ? i : i + 1;
 }
 
  void gtmpi_init(int n_threads)
@@ -36,7 +36,7 @@ static int ceillog2(int val)
   count = n_threads;
   num_rounds = ceillog2(count) + 1;
 
-  rounds = (round_t**)malloc(count * sizeof(round_t *));
+  rounds = (round_t**)malloc(count * sizeof(round_t*));
   
   for (int i = 0; i < count; i++)
   {
@@ -48,15 +48,15 @@ static int ceillog2(int val)
       
       if (j > 0)
       {
-        if ((i % (1 << j) == 0) && (i + (1 << (j-1)) < count) && ((1 << j) < count))
+        if ((i % (1 << j) == 0) && (i + (1 << (j - 1)) < count) && ((1 << j) < count))
         {
           rounds[i][j].role = WINNER;
         }
-        else if ((i % (1 << j) == 0) && (i + (1 << (j-1)) >= count))
+        else if ((i % (1 << j) == 0) && (i + (1 << (j - 1)) >= count))
         {
           rounds[i][j].role = BYE;
         }
-        else if ((i % (1 << j)) == (1 << (j-1)))
+        else if ((i % (1 << j)) == (1 << (j - 1)))
         {
           rounds[i][j].role = LOSER;
         }
@@ -76,12 +76,12 @@ static int ceillog2(int val)
 
       if (rounds[i][j].role == LOSER)
       {
-        rounds[i][j].opponent = i - (1 << (j-1));
+        rounds[i][j].opponent = i - (1 << (j - 1));
       }
       else if (rounds[i][j].role == WINNER || 
         rounds[i][j].role == CHAMPION)
       {
-        rounds[i][j].opponent = i + (1 << (j-1));
+        rounds[i][j].opponent = i + (1 << (j - 1));
       }
     }
   }
