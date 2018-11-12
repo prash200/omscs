@@ -28,7 +28,7 @@ public:
   ServerImpl(std::string server_address, unsigned num_max_threads)
   {
     server_address_ = server_address;
-    pool_ = Threadpool(num_max_threads);
+    pool_ = ThreadPool(num_max_threads);
   }
 
   ~ServerImpl()
@@ -146,7 +146,7 @@ private:
     }
   }
 
-  Threadpool pool_;
+  ThreadPool pool_;
   std::string server_address_;
   std::unique_ptr<ServerCompletionQueue> cq_;
   std::unique_ptr<Server> server_;
