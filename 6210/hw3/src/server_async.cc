@@ -117,12 +117,6 @@ class ServerImpl final
     }
   }
 
-  BidReply query_vendor(std::string product_name, std::string vendor_address)
-  {
-    VendorClient vendor_client(grpc::CreateChannel(vendor_address, grpc::InsecureChannelCredentials()));
-    return vendor_client.get_details(product_name);
-  }
-
   std::string server_address_;
   std::unique_ptr<ServerCompletionQueue> cq_;
   std::unique_ptr<Server> server_;
@@ -134,3 +128,9 @@ void run_server(std::string server_address, unsigned num_max_threads)
   ServerImpl server(server_address);
   server.Run();
 }
+
+  BidReply query_vendor(std::string product_name, std::string vendor_address)
+  {
+    VendorClient vendor_client(grpc::CreateChannel(vendor_address, grpc::InsecureChannelCredentials()));
+    return vendor_client.get_details(product_name);
+  }
