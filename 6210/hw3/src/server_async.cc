@@ -28,11 +28,12 @@ public:
   ServerImpl(std::string server_address, unsigned num_max_threads)
   {
     server_address_ = server_address;
-    pool_ = ThreadPool(num_max_threads);
+    pool_ = new ThreadPool(num_max_threads);
   }
 
   ~ServerImpl()
   {
+    delete pool_;
     server_->Shutdown();
     cq_->Shutdown();
   }
@@ -52,7 +53,7 @@ public:
 
   BidReply query_vendor(std::string product_name, std::string vendor_address)
   {
-    auto result = pool_.enqueue([](std::string product_name, std::string vendor_address)
+    auto result = pool_->enqueue([](std::string product_name, std::string vendor_address)
     {
       VendorClient vendor_client(grpc::CreateChannel(vendor_address, grpc::InsecureChannelCredentials()));
       return vendor_client.get_details(product_name);
@@ -146,7 +147,7 @@ private:
     }
   }
 
-  ThreadPool pool_;
+  ThreadPool *pool_;
   std::string server_address_;
   std::unique_ptr<ServerCompletionQueue> cq_;
   std::unique_ptr<Server> server_;
