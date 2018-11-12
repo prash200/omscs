@@ -58,7 +58,7 @@ public:
       VendorClient vendor_client(grpc::CreateChannel(vendor_address, grpc::InsecureChannelCredentials()));
       return vendor_client.get_details(product_name);
     },
-    request_.product_name(),
+    product_name,
     vendor_address);
 
     return result.get();
