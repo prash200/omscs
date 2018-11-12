@@ -95,7 +95,7 @@ private:
         std::ifstream myfile("vendor_addresses.txt");
         while(getline(myfile, vendor_address))
         {
-          BidReply reply = caller->query_vendor(request_.product_name(), vendor_address);
+          BidReply reply = caller_->query_vendor(request_.product_name(), vendor_address);
 
           if (reply.price() == -1)
           {
