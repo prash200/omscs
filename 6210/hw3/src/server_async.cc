@@ -45,16 +45,37 @@ public:
     cq_ = builder.AddCompletionQueue();
     server_ = builder.BuildAndStart();
 
-    std::cout<<"Server listening on"<<server_address_<<std::endl;
+    std::cout<<"Server listening on "<<server_address_<<std::endl;
 
     HandleRpcs();
   }
+
+  BidReply query_vendor(std::string product_name, std::string vendor_address)
+  {
+    auto result = pool_.enqueue([](std::string product_name, std::string vendor_address)
+    {
+      VendorClient vendor_client(grpc::CreateChannel(vendor_address, grpc::InsecureChannelCredentials()));
+      return vendor_client.get_details(product_name);
+    },
+    request_.product_name(),
+    vendor_address);
+
+    return result.get();
+  }
+
+/*
+  BidReply query_vendor(std::string product_name, std::string vendor_address)
+  {
+    VendorClient vendor_client(grpc::CreateChannel(vendor_address, grpc::InsecureChannelCredentials()));
+    return vendor_client.get_details(product_name);
+  }
+*/
 
 private:
   class CallData
   {
   public:
-    CallData(Store::AsyncService* service, ServerCompletionQueue* cq) : service_(service), cq_(cq), responder_(&ctx_), status_(CREATE)
+    CallData(Store::AsyncService* service, ServerCompletionQueue* cq, ServerImpl* caller) : service_(service), cq_(cq), responder_(&ctx_), status_(CREATE), caller_(caller)
     {
       Proceed();
     }
@@ -68,22 +89,13 @@ private:
       }
       else if (status_ == PROCESS)
       {
-        new CallData(service_, cq_);
+        new CallData(service_, cq_, caller_);
 
         std::string vendor_address;
         std::ifstream myfile("vendor_addresses.txt");
         while(getline(myfile, vendor_address))
         {
-          //BidReply reply = query_vendor(request_.product_name(), vendor_address);
-          
-          auto result = pool_.enqueue([](std::string product_name, std::string vendor_address)
-            {
-              VendorClient vendor_client(grpc::CreateChannel(vendor_address, grpc::InsecureChannelCredentials()));
-              return vendor_client.get_details(product_name);
-            },
-            request_.product_name(),
-            vendor_address);
-          BidReply reply = result.get();
+          BidReply reply = caller->query_vendor(request_.product_name(), vendor_address);
 
           if (reply.price() == -1)
           {
@@ -107,6 +119,8 @@ private:
     }
 
   private:
+    ServerImpl *caller_;
+
     Store::AsyncService *service_;
     ServerCompletionQueue *cq_;
     ServerContext ctx_;
@@ -120,7 +134,7 @@ private:
 
   void HandleRpcs()
   {
-    new CallData(&service_, cq_.get());
+    new CallData(&service_, cq_.get(), this);
 
     void *tag;
     bool ok;
@@ -143,10 +157,4 @@ void run_server(std::string server_address, unsigned num_max_threads)
 {
   ServerImpl server(server_address, num_max_threads);
   server.Run();
-}
-
-BidReply query_vendor(std::string product_name, std::string vendor_address)
-{
-  VendorClient vendor_client(grpc::CreateChannel(vendor_address, grpc::InsecureChannelCredentials()));
-  return vendor_client.get_details(product_name);
 }
