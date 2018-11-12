@@ -64,14 +64,6 @@ public:
     return result.get();
   }
 
-/*
-  BidReply query_vendor(std::string product_name, std::string vendor_address)
-  {
-    VendorClient vendor_client(grpc::CreateChannel(vendor_address, grpc::InsecureChannelCredentials()));
-    return vendor_client.get_details(product_name);
-  }
-*/
-
 private:
   class CallData
   {
