@@ -2,9 +2,7 @@
 #include <memory>
 #include <string>
 #include <sstream>
-
 #include <grpc++/grpc++.h>
-
 #include "vendor.grpc.pb.h"
 
 using grpc::Channel;
@@ -40,23 +38,14 @@ class VendorClient
     GPR_ASSERT(cq.Next(&got_tag, &ok));
     GPR_ASSERT(got_tag == (void*)1);
     GPR_ASSERT(ok);
-    if (status.ok()) 
+    if (!status.ok()) 
     {
-      return reply;
+      reply.set_price(-1);
     }
-    else
-    {
-      return NULL;
-    }
+
+    return reply;
   }
 
  private:
   std::unique_ptr<Vendor::Stub> stub_;
 };
-
-BidReply run_client(std::string product_name, std::string ip_address)
-{  
-  VendorClient vendor_(grpc::CreateChannel(ip_address, grpc::InsecureChannelCredentials()));
-
-  return vendor_.get_details(product_name);
-}

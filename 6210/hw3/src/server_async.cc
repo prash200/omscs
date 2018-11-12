@@ -4,9 +4,8 @@
 #include <thread>
 #include <fstream>
 #include <grpc++/grpc++.h>
-#include "client_async.cc"
-
 #include "store.grpc.pb.h"
+#include "vendor_client_async.cc"
 
 using grpc::Server;
 using grpc::ServerAsyncResponseWriter;
@@ -65,15 +64,20 @@ class ServerImpl final
       {
         new CallData(service_, cq_);
 
-        std::string ip_addr;
+        std::string vendor_address;
         std::ifstream myfile("vendor_addresses.txt");
-        while(getline(myfile, ip_addr))
+        while(getline(myfile, vendor_address))
         {
-          BidReply reply = run_client(request_.product_name(), ip_addr);
+          BidReply reply = query_vendor(request_.product_name(), vendor_address);
+
+          if (reply.price() == -1)
+          {
+            continue;
+          }
 
           ProductInfo prod_info;
           prod_info.set_vendor_id(reply.vendor_id());
-          prod_info.set_price(reply.vendor_id());
+          prod_info.set_price(reply.price());
           reply_.add_products()->CopyFrom(prod_info);
         }
 
@@ -113,16 +117,20 @@ class ServerImpl final
     }
   }
 
+  BidReply query_vendor(std::string product_name, std::string vendor_address)
+  {
+    VendorClient vendor_client(grpc::CreateChannel(vendor_address, grpc::InsecureChannelCredentials()));
+    return vendor_client.get_details(product_name);
+  }
+
   std::string server_address_;
   std::unique_ptr<ServerCompletionQueue> cq_;
   std::unique_ptr<Server> server_;
   Store::AsyncService service_;
 };
 
-int run_server(std::string server_address, unsigned num_max_threads)
+void run_server(std::string server_address, unsigned num_max_threads)
 {
   ServerImpl server(server_address);
   server.Run();
-
-  return 0;
 }
