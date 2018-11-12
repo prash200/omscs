@@ -5,6 +5,7 @@
 #include <fstream>
 #include <grpc++/grpc++.h>
 #include "store.grpc.pb.h"
+#include "threadpool.h"
 #include "vendor_client_async.cc"
 
 using grpc::Server;
@@ -23,10 +24,11 @@ BidReply query_vendor(std::string product_name, std::string vendor_address);
 
 class ServerImpl final
 {
- public:
-  ServerImpl(std::string server_address)
+public:
+  ServerImpl(std::string server_address, unsigned num_max_threads)
   {
     server_address_ = server_address;
+    pool_ = Threadpool(num_max_threads);
   }
 
   ~ServerImpl()
@@ -43,13 +45,15 @@ class ServerImpl final
     cq_ = builder.AddCompletionQueue();
     server_ = builder.BuildAndStart();
 
+    std::cout<<"Server listening on"<<server_address_<<std::endl;
+
     HandleRpcs();
   }
 
- private:
+private:
   class CallData
   {
-   public:
+  public:
     CallData(Store::AsyncService* service, ServerCompletionQueue* cq) : service_(service), cq_(cq), responder_(&ctx_), status_(CREATE)
     {
       Proceed();
@@ -70,7 +74,16 @@ class ServerImpl final
         std::ifstream myfile("vendor_addresses.txt");
         while(getline(myfile, vendor_address))
         {
-          BidReply reply = query_vendor(request_.product_name(), vendor_address);
+          //BidReply reply = query_vendor(request_.product_name(), vendor_address);
+          
+          auto result = pool_.enqueue([](std::string product_name, std::string vendor_address)
+            {
+              VendorClient vendor_client(grpc::CreateChannel(vendor_address, grpc::InsecureChannelCredentials()));
+              return vendor_client.get_details(product_name);
+            },
+            request_.product_name(),
+            vendor_address);
+          BidReply reply = result.get();
 
           if (reply.price() == -1)
           {
@@ -93,7 +106,7 @@ class ServerImpl final
       }
     }
 
-   private:
+  private:
     Store::AsyncService *service_;
     ServerCompletionQueue *cq_;
     ServerContext ctx_;
@@ -119,6 +132,7 @@ class ServerImpl final
     }
   }
 
+  Threadpool pool_;
   std::string server_address_;
   std::unique_ptr<ServerCompletionQueue> cq_;
   std::unique_ptr<Server> server_;
@@ -127,7 +141,7 @@ class ServerImpl final
 
 void run_server(std::string server_address, unsigned num_max_threads)
 {
-  ServerImpl server(server_address);
+  ServerImpl server(server_address, num_max_threads);
   server.Run();
 }
 

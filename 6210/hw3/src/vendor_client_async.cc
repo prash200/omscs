@@ -16,7 +16,7 @@ using vendor::Vendor;
 
 class VendorClient
 {
- public:
+public:
   explicit VendorClient(std::shared_ptr<Channel> channel): stub_(Vendor::NewStub(channel))
   {}
 
@@ -46,6 +46,6 @@ class VendorClient
     return reply;
   }
 
- private:
+private:
   std::unique_ptr<Vendor::Stub> stub_;
 };

@@ -1,128 +1,90 @@
-#pragma once
+#ifndef THREAD_POOL_H
+#define THREAD_POOL_H
 
-#ifndef CONCURRENT_THREADPOOL_H
-#define CONCURRENT_THREADPOOL_H
-
-#include <atomic>
+#include <vector>
+#include <queue>
+#include <memory>
 #include <thread>
 #include <mutex>
-#include <array>
-#include <vector>
-#include <list>
-#include <iostream>
-#include <functional>
 #include <condition_variable>
+#include <future>
+#include <functional>
+#include <stdexcept>
 
 class ThreadPool
 {
- private:
-  std::vector<std::thread> threads;
-  std::list<std::function<void(void)>> queue;
-  std::atomic_int jobs_left;
-  std::atomic_bool bailout;
-  std::atomic_bool finished;
-  std::condition_variable job_available_var;
-  std::condition_variable wait_var;
-  std::mutex wait_mutex;
-  std::mutex queue_mutex;
-
-  void Task()
-  {
-    while (!bailout)
-    {
-      next_job()();
-      --jobs_left;
-      wait_var.notify_one();
-    }
-  }
-
-  std::function<void(void)> next_job()
-  {
-    std::function<void(void)> res;
-    std::unique_lock<std::mutex> job_lock(queue_mutex);
-
-    job_available_var.wait(job_lock, [this]()->bool{return queue.size() || bailout;});
-
-    if (!bailout)
-    {
-      res = queue.front();
-      queue.pop_front();
-    }
-    else
-    {
-      res = []{};
-      ++jobs_left;
-    }
-
-    return res;
-  }
-
 public:
-  unsigned ThreadCount;
-  ThreadPool(unsigned ThreadCount_) : threads(ThreadCount_), jobs_left( 0 ), bailout( false ), finished( false ) 
+  ThreadPool(size_t threads) : stop(false)
   {
-    ThreadCount = ThreadCount_;
-    for (unsigned i = 0 ; i < ThreadCount ; ++i)
+    for(size_t i = 0 ; i < threads ; ++i)
     {
-      threads[i] = std::move(std::thread([this,i]{this->Task();}));
-  }
-
-  ~ThreadPool()
-  {
-    JoinAll();
-  }
-
-  inline unsigned Size() const
-  {
-    return ThreadCount;
-  }
-
-  inline unsigned JobsRemaining()
-  {
-    std::lock_guard<std::mutex> guard(queue_mutex);
-    return queue.size();
-  }
-
-  void AddJob(std::function<void(void)> job)
-  {
-    std::lock_guard<std::mutex> guard(queue_mutex);
-    queue.emplace_back(job);
-    ++jobs_left;
-    job_available_var.notify_one();
-  }
-
-  void JoinAll(bool WaitForAll = true)
-  {
-    if (!finished )
-    {
-      if (WaitForAll)
-      {
-        WaitAll();
-      }
-
-      bailout = true;
-      job_available_var.notify_all();
-
-      for (auto &x : threads)
-      {
-        if (x.joinable())
+      workers.emplace_back(
+        [this]
         {
-          x.join();
+          for(;;)
+          {
+            std::function<void()> task;
+            {
+              std::unique_lock<std::mutex> lock(this->queue_mutex);
+              this->condition.wait(lock, [this]{return this->stop || !this->tasks.empty();});
+              if(this->stop && this->tasks.empty())
+              {
+                return;
+              }
+
+              task = std::move(this->tasks.front());
+              this->tasks.pop();
+            }
+
+            task();
+          }
         }
-
-        finished = true;
-      }
-  }
-
-  void WaitAll()
-  {
-    if(jobs_left > 0)
-    {
-      std::unique_lock<std::mutex> lk(wait_mutex);
-      wait_var.wait(lk, [this]{return this->jobs_left == 0;});
-      lk.unlock();
+      );
     }
   }
+
+template<class F, class... Args>
+auto enqueue(F&& f, Args&&... args) -> std::future<typename std::result_of<F(Args...)>::type>
+{
+  using return_type = typename std::result_of<F(Args...)>::type;
+
+  auto task = std::make_shared<std::packaged_task<return_type()> >(std::bind(std::forward<F>(f), std::forward<Args>(args)...));
+  std::future<return_type> res = task->get_future();
+  {
+    std::unique_lock<std::mutex> lock(queue_mutex);
+    if(stop)
+    {
+      throw std::runtime_error("enqueue on stopped ThreadPool");
+    }
+
+    tasks.emplace([task](){(*task)();});
+  }
+
+  condition.notify_one();
+  return res;
+}
+
+inline ~ThreadPool()
+{
+  {
+    std::unique_lock<std::mutex> lock(queue_mutex);
+    stop = true;
+  }
+
+  condition.notify_all();
+
+  for(std::thread &worker: workers)
+  {
+    worker.join();
+  }
+}
+
+private:
+  std::vector<std::thread> workers;
+  std::queue<std::function<void()> > tasks;
+  std::mutex queue_mutex;
+  std::condition_variable condition;
+  bool stop;
 };
 
-#endif //CONCURRENT_THREADPOOL_H
+#endif
