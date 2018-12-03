@@ -75,7 +75,7 @@ inline void Master::update_temp_file_name_map(const std::vector<std::string>& te
   for (auto& temp_file_name : temp_file_names)
   {
     std::string key = temp_file_name.substr(temp_file_name.find_last_of('/'));
-    if (temp_file_name_map_.count() == 0)
+    if (temp_file_name_map_.count(key) == 0)
     {
       temp_file_name_map_[key] = std::vector<std::string>();
     }

@@ -23,7 +23,7 @@ struct MapReduceSpec
 inline std::string trim(const std::string& str)
 {
     size_t first = str.find_first_not_of(' ');
-    if (string::npos == first)
+    if (std::string::npos == first)
     {
         return str;
     }
