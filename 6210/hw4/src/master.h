@@ -25,7 +25,6 @@ enum WORKER_STATUS
   BUSY
 };
 
-class MasterImpl;
 class Master
 {
 public:
@@ -228,7 +227,7 @@ inline void Master::run_all_map_tasks()
   for (auto& file_shard : file_shards_)
   {
     MasterImpl* master_impl = new MasterImpl(get_idle_worker(), this);
-    std::thread(&MasterImpl::async_client_call_complete, &master_impl);
+    std::thread(&MasterImpl::async_client_call_complete, master_impl);
     master_impl->map(mr_spec_.user_id, file_shard);
   }
 }
@@ -252,7 +251,7 @@ inline void Master::run_all_reduce_tasks()
     }
 
     MasterImpl* master_impl = new MasterImpl(get_idle_worker(), this);
-    std::thread(&MasterImpl::async_client_call_complete, &master_impl);
+    std::thread(&MasterImpl::async_client_call_complete, master_impl);
     master_impl->reduce(mr_spec_.user_id, temp_file_names);
 
     ++n_curr_output_files;
