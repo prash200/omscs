@@ -65,21 +65,14 @@ public:
 
   void map(const std::string& user_id, const FileShard& file_shard)
   {
-    std::vector<std::string> file_names;
-    std::vector<std::string> start_offsets;
-    std::vector<std::string> end_offsets;
+    ShardInfo shard_info;
+    shard_info.set_user_id(user_id);
     for(auto kv : file_shard.shards)
     {
-      file_names.push_back(kv.first);
-      start_offsets.push_back(kv.second.first);
-      end_offsets.push_back(kv.second.second);
+      shard_info.set_file_names(0, kv.first);
+      shard_info.set_start_offsets(0, std::to_string(kv.second.first));
+      shard_info.set_end_offsets(0, std::to_string(kv.second.second));
     }
-
-    ShardInfo shard_info;
-    shard_info.set_file_names(file_names);
-    shard_info.set_start_offsets(start_offsets);
-    shard_info.set_end_offsets(end_offsets);
-    shard_info.set_user_id(user_id);
 
     AsyncClientCall* call = new AsyncClientCall;
 
@@ -93,8 +86,11 @@ public:
   void reduce(const std::string& user_id, const std::vector<std::string>& temp_file_names)
   {
     TempFileInfo temp_file_info;
-    temp_file_info.set_file_names(temp_file_names);
     temp_file_info.set_user_id(user_id);
+    for (auto& temp_file_name : temp_file_names)
+    {
+      temp_file_info.set_file_names(0, temp_file_name);
+    }
 
     AsyncClientCall* call = new AsyncClientCall;
 

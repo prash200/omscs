@@ -99,7 +99,10 @@ public:
       }
     }
 
-    mapper_reply->set_file_names(mapper->impl_->temp_file_names_);
+    for (auto& temp_file_name : mapper->impl_->temp_file_names_)
+    {
+      mapper_reply->set_file_names(0, temp_file_name);
+    }
 
     return Status::OK;
   }
@@ -139,7 +142,10 @@ public:
       reducer->reduce(kv.first, kv.second);
     }
 
-    reducer_reply->set_file_names(reducer->impl_->output_file_names_);
+    for (auto& output_file_name : reducer->impl_->output_file_names_)
+    {
+      reducer_reply->set_file_names(0, output_file_name);
+    }
 
     return Status::OK;
   }
