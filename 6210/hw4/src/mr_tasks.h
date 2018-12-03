@@ -47,7 +47,7 @@ struct BaseReducerInternal
   BaseReducerInternal();
 
   void emit(const std::string& key, const std::string& val);
-  void set_reducer_id(std::string reducer_id)
+  void set_reducer_id(std::string reducer_id);
 
   std::unordered_set<std::string> output_file_names_;
   std::string reducer_id_;
