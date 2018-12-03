@@ -221,7 +221,7 @@ inline void Master::run_all_map_tasks()
   {
     MasterImpl* master_impl = new MasterImpl(get_idle_worker(), this);
     std::thread(&MasterImpl::async_client_call_complete, &master_impl);
-    master_impl->map(mr_spec_.user_id(), file_shard);
+    master_impl->map(mr_spec_.user_id, file_shard);
   }
 }
 
@@ -245,7 +245,7 @@ inline void Master::run_all_reduce_tasks()
 
     MasterImpl* master_impl = MasterImpl(get_idle_worker(), this);
     std::thread(&MasterImpl::async_client_call_complete, &master_impl);
-    master_impl->reduce(mr_spec_.user_id(), temp_file_names);
+    master_impl->reduce(mr_spec_.user_id, temp_file_names);
 
     ++n_curr_output_files;
     if (n_keys_per_reducer != 1 &&
