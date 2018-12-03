@@ -66,10 +66,10 @@ Master::Master(const MapReduceSpec& mr_spec, const std::vector<FileShard>& file_
 
 bool Master::run()
 {
-  this->run_all_map_tasks();
+  run_all_map_tasks();
   std::unique_lock<std::mutex> lock(m_);
   cv_.wait(lock, [this]{ return completion_count_ == file_shards_.size(); });
-  this->run_all_reduce_tasks();
+  run_all_reduce_tasks();
   cv_.wait(lock, [this]{ return completion_count_ == mr_spec_.n_output_files; });
   
   return true;
@@ -109,13 +109,13 @@ inline void Master::increment_completion_count()
   completion_count_ += 1;
 }
 
-inline bool Master::run_all_map_tasks()
+inline void Master::run_all_map_tasks()
 {
   completion_count_ = 0;
 
   for (auto& file_shard : file_shards_)
   {
-    MasterImpl* master_impl = new MasterImpl(this->get_idle_worker(), this);
+    MasterImpl* master_impl = new MasterImpl(get_idle_worker(), this);
     std::thread(&MasterImpl::async_client_call_complete, &master_impl);
     master_impl->map(mr_spec_.user_id(), file_shard);
   }
@@ -123,7 +123,7 @@ inline bool Master::run_all_map_tasks()
   return true;
 }
 
-inline bool Master::run_all_reduce_tasks()
+inline void Master::run_all_reduce_tasks()
 {
   completion_count_ = 0;
 
