@@ -20,9 +20,6 @@ using masterworker::MapperReply;
 using masterworker::TempFileInfo;
 using masterworker::ReducerReply;
 
-extern std::shared_ptr<BaseReducer> get_reducer_from_task_factory(const std::string& user_id);
-extern std::shared_ptr<BaseMapper> get_mapper_from_task_factory(const std::string& user_id);
-
 class WorkerImpl final : public MapReduceMasterWorker::Service
 {
 private:
