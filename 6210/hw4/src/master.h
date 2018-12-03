@@ -112,7 +112,7 @@ public:
       GPR_ASSERT(ok);
       if (call->mapper_status.ok())
       {
-        std::vector<string> temp_file_names;
+        std::vector<std::string> temp_file_names;
         for (auto& file_name : call->mapper_reply.file_names())
         {
           temp_file_names.push_back(file_name);
@@ -124,7 +124,7 @@ public:
       }
       else if (call->reducer_status.ok())
       {
-        std::vector<string> output_file_names;
+        std::vector<std::string> output_file_names;
         for (auto& file_name : call->reducer_reply.file_names())
         {
           output_file_names.push_back(file_name);
