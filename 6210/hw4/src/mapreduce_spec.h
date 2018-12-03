@@ -20,7 +20,7 @@ struct MapReduceSpec
   std::vector<std::string> input_files;
 };
 
-inline string trim(const string& str)
+inline std::string trim(const string& str)
 {
     size_t first = str.find_first_not_of(' ');
     if (string::npos == first)

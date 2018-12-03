@@ -16,7 +16,7 @@ struct FileShard
   std::unordered_map<std::string, std::pair<std::streampos, std::streampos> > shards;
 };
 
-inline uint64_t get_input_size(std::string& file_name)
+inline uint64_t get_input_size(const std::string& file_name)
 {
   std::ifstream file(file_name, std::ios::binary);
   file.seekg(0, std::ios::beg);
@@ -44,7 +44,7 @@ inline bool shard_files(const MapReduceSpec& mr_spec, std::vector<FileShard>& fi
   size_t n_shards = std::ceil(total_size / (mr_spec.map_kilobytes * 1024.0));
   file_shards.reserve(n_shards);
 
-  for (size_t curr_shard_num = 0, size_t input_file_index = 0, size_t input_file_offset = 0 ; curr_shard_num < n_shards ; ++curr_shard_num)
+  for (size_t curr_shard_num = 0, input_file_index = 0, input_file_offset = 0 ; curr_shard_num < n_shards ; ++curr_shard_num)
   {
     size_t curr_shard_size = 0;
     while (curr_shard_size < mr_spec.map_kilobytes * 1024)
