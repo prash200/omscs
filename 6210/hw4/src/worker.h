@@ -20,18 +20,18 @@ using masterworker::MapperReply;
 using masterworker::TempFileInfo;
 using masterworker::ReducerReply;
 
-extern std::shared_ptr<BaseReducer> get_reducer_from_task_factory(const std::string& user_id);
 extern std::shared_ptr<BaseMapper> get_mapper_from_task_factory(const std::string& user_id);
+extern std::shared_ptr<BaseReducer> get_reducer_from_task_factory(const std::string& user_id);
 
 class Worker
 {
 public:
   Worker(std::string ip_addr_port);
   bool run();
-  void set_mapper_id(BaseMapper* mapper);
-  void set_reducer_id(BaseReducer* reducer);
-  std::unordered_set<std::string>& get_temp_file_names(BaseMapper* mapper);
-  std::unordered_set<std::string>& get_output_file_names(BaseReducer* reducer);
+  void set_mapper_id(std::shared_ptr<BaseMapper> mapper);
+  void set_reducer_id(std::shared_ptr<BaseReducer> reducer);
+  std::unordered_set<std::string>& get_temp_file_names(std::shared_ptr<BaseMapper> mapper);
+  std::unordered_set<std::string>& get_output_file_names(std::shared_ptr<BaseReducer> reducer);
 
 private:
   std::string ip_addr_port_;
@@ -163,22 +163,22 @@ bool Worker::run()
   return true;
 }
 
-void Worker::set_mapper_id(BaseMapper* mapper)
+void Worker::set_mapper_id(std::shared_ptr<BaseMapper> mapper)
 {
   mapper->impl_->mapper_id = new_guid();
 }
 
-void Worker::set_reducer_id(BaseReducer* reducer)
+void Worker::set_reducer_id(std::shared_ptr<BaseReducer> reducer)
 {
   reducer->impl_->reducer_id = new_guid();
 }
 
-std::unordered_set<std::string>& Worker::get_temp_file_names(BaseMapper* mapper)
+std::unordered_set<std::string>& Worker::get_temp_file_names(std::shared_ptr<BaseMapper> mapper)
 {
   return mapper->impl_->temp_file_names;
 }
 
-std::unordered_set<std::string>& Worker::get_output_file_names(BaseReducer* reducer)
+std::unordered_set<std::string>& Worker::get_output_file_names(std::shared_ptr<BaseReducer> reducer)
 {
   return reducer->impl_->output_file_names;
 }
