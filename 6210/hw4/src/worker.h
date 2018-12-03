@@ -9,6 +9,7 @@
 
 #include "masterworker.grpc.pb.h"
 #include "mr_tasks.h"
+#include "mr_task_factory.cc"
 
 using grpc::Server;
 using grpc::ServerBuilder;
