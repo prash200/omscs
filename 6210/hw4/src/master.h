@@ -70,8 +70,8 @@ public:
     for(auto kv : file_shard.shards)
     {
       shard_info.set_file_names(0, kv.first);
-      shard_info.set_start_offsets(0, std::to_string(kv.second.first));
-      shard_info.set_end_offsets(0, std::to_string(kv.second.second));
+      shard_info.set_start_offsets(0, kv.second.first);
+      shard_info.set_end_offsets(0, kv.second.second);
     }
 
     AsyncClientCall* call = new AsyncClientCall;
