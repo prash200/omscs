@@ -26,8 +26,6 @@ enum WORKER_STATUS
   BUSY
 };
 
-class MasterImpl;
-
 class Master
 {
 public:
@@ -53,6 +51,110 @@ private:
 
   std::mutex m_;
   std::condition_variable cv_;
+};
+
+class MasterImpl
+{
+public:
+  explicit MasterImpl(std::string ip_addr_port, Master* master)
+  {
+    ip_addr_port_ = ip_addr_port;
+    master_ = master;
+    stub_ = MapReduceMasterWorker::NewStub(grpc::CreateChannel(ip_addr_port, grpc::InsecureChannelCredentials()));
+  }
+
+  void map(const std::string& user_id, const FileShard& file_shard)
+  {
+    std::vector<std::string> file_names;
+    std::vector<std::string> start_offsets;
+    std::vector<std::string> end_offsets;
+    for(auto kv : file_shard)
+    {
+      file_names.push_back(kv.first);
+      start_offsets.push_back(kv.second.first);
+      end_offsets.push_back(kv.second.second);
+    }
+
+    ShardInfo shard_info;
+    shard_info.set_file_names(file_names);
+    shard_info.set_start_offsets(start_offsets);
+    shard_info.set_end_offsets(end_offsets);
+    shard_info.set_user_id(user_id);
+
+    AsyncClientCall* call = new AsyncClientCall;
+
+    call->mapper_response_reader = stub_->Asyncmap(&call->context, shard_info, &cq_);
+
+    call->mapper_response_reader->StartCall();
+
+    call->mapper_response_reader->Finish(&call->mapper_reply, &call->mapper_status, (void*)call);
+  }
+
+  void reduce(const std::string& user_id, const std::vector<std::string>& temp_file_names)
+  {
+    TempFileInfo temp_file_info;
+    temp_file_info.set_file_names(temp_file_names);
+    temp_file_info.set_user_id(user_id);
+
+    AsyncClientCall* call = new AsyncClientCall;
+
+    call->reduce_response_reader = stub_->Asyncreduce(&call->context, temp_file_info, &cq_);
+
+    call->reduce_response_reader->StartCall();
+
+    call->reduce_response_reader->Finish(&call->reducer_reply, &call->reducer_status, (void*)call);
+  }
+
+  void async_client_call_complete()
+  {
+    void* got_tag;
+    bool ok = false;
+    while (cq_.Next(&got_tag, &ok))
+    {
+      AsyncClientCall* call = static_cast<AsyncClientCall*>(got_tag);
+
+      GPR_ASSERT(ok);
+      if (call->mapper_status.ok())
+      {
+        master_->update_temp_file_name_map(call->mapper_reply.file_names());
+        master_->update_worker_status(ip_addr_port_, AVAILABLE);
+        master_->increment_completion_count();
+      }
+      else if (call->reducer_status.ok())
+      {
+        master_->update_output_files(call->reducer_reply.file_names());
+        master_->update_worker_status(ip_addr_port_, AVAILABLE);
+        master_->increment_completion_count();
+      }
+      else
+      {
+        std::cout << "RPC failed" << std::endl;
+      }
+
+      delete call;
+      delete this;
+    }
+  }
+
+private:
+  struct AsyncClientCall
+  {
+    MapperReply mapper_reply;
+    ReducerReply reducer_reply;
+
+    ClientContext context;
+
+    Status mapper_status;
+    Status reducer_status;
+
+    std::unique_ptr<ClientAsyncResponseReader<MapperReply> > mapper_response_reader;
+    std::unique_ptr<ClientAsyncResponseReader<ReducerReply> > reducer_response_reader;
+  };
+
+  std::string ip_addr_port_;
+  Master *master_;
+  std::unique_ptr<MapReduceMasterWorker::Stub> stub_;
+  CompletionQueue cq_;
 };
 
 Master::Master(const MapReduceSpec& mr_spec, const std::vector<FileShard>& file_shards)
@@ -172,107 +274,3 @@ inline std::string Master::get_idle_worker()
 
   return get_idle_worker();
 }
-
-class MasterImpl
-{
-public:
-  explicit MasterImpl(std::string ip_addr_port, Master* master)
-  {
-    ip_addr_port_ = ip_addr_port;
-    master_ = master;
-    stub_ = MapReduceMasterWorker::NewStub(grpc::CreateChannel(ip_addr_port, grpc::InsecureChannelCredentials()));
-  }
-
-  void map(const std::string& user_id, const FileShard& file_shard)
-  {
-    std::vector<std::string> file_names;
-    std::vector<std::string> start_offsets;
-    std::vector<std::string> end_offsets;
-    for(auto kv : file_shard)
-    {
-      file_names.push_back(kv.first);
-      start_offsets.push_back(kv.second.first);
-      end_offsets.push_back(kv.second.second);
-    }
-
-    ShardInfo shard_info;
-    shard_info.set_file_names(file_names);
-    shard_info.set_start_offsets(start_offsets);
-    shard_info.set_end_offsets(end_offsets);
-    shard_info.set_user_id(user_id);
-
-    AsyncClientCall* call = new AsyncClientCall;
-
-    call->mapper_response_reader = stub_->Asyncmap(&call->context, shard_info, &cq_);
-
-    call->mapper_response_reader->StartCall();
-
-    call->mapper_response_reader->Finish(&call->mapper_reply, &call->mapper_status, (void*)call);
-  }
-
-  void reduce(const std::string& user_id, const std::vector<std::string>& temp_file_names)
-  {
-    TempFileInfo temp_file_info;
-    temp_file_info.set_file_names(temp_file_names);
-    temp_file_info.set_user_id(user_id);
-
-    AsyncClientCall* call = new AsyncClientCall;
-
-    call->reduce_response_reader = stub_->Asyncreduce(&call->context, temp_file_info, &cq_);
-
-    call->reduce_response_reader->StartCall();
-
-    call->reduce_response_reader->Finish(&call->reducer_reply, &call->reducer_status, (void*)call);
-  }
-
-  void async_client_call_complete()
-  {
-    void* got_tag;
-    bool ok = false;
-    while (cq_.Next(&got_tag, &ok))
-    {
-      AsyncClientCall* call = static_cast<AsyncClientCall*>(got_tag);
-
-      GPR_ASSERT(ok);
-      if (call->mapper_status.ok())
-      {
-        master_->update_temp_file_name_map(call->mapper_reply.file_names());
-        master_->update_worker_status(ip_addr_port_, AVAILABLE);
-        master_->increment_completion_count();
-      }
-      else if (call->reducer_status.ok())
-      {
-        master_->update_output_files(call->reducer_reply.file_names());
-        master_->update_worker_status(ip_addr_port_, AVAILABLE);
-        master_->increment_completion_count();
-      }
-      else
-      {
-        std::cout << "RPC failed" << std::endl;
-      }
-
-      delete call;
-      delete this;
-    }
-  }
-
-private:
-  struct AsyncClientCall
-  {
-    MapperReply mapper_reply;
-    ReducerReply reducer_reply;
-
-    ClientContext context;
-
-    Status mapper_status;
-    Status reducer_status;
-
-    std::unique_ptr<ClientAsyncResponseReader<MapperReply> > mapper_response_reader;
-    std::unique_ptr<ClientAsyncResponseReader<ReducerReply> > reducer_response_reader;
-  };
-
-  std::string ip_addr_port_;
-  Master *master_;
-  std::unique_ptr<MapReduceMasterWorker::Stub> stub_;
-  CompletionQueue cq_;
-};
