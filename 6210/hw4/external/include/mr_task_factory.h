@@ -46,6 +46,3 @@ class BaseReducer {
 /* Register user's implementation of the tasks with a user id same as user_id in the config.ini */
 bool register_tasks(std::string user_id, std::function<std::shared_ptr<BaseMapper>() >& generate_mapper, 
 		std::function<std::shared_ptr<BaseReducer>() >& generate_reducer);
-
-std::shared_ptr<BaseReducer> get_reducer_from_task_factory(const std::string& user_id);
-std::shared_ptr<BaseMapper> get_mapper_from_task_factory(const std::string& user_id);

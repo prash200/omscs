@@ -20,6 +20,9 @@ using masterworker::MapperReply;
 using masterworker::TempFileInfo;
 using masterworker::ReducerReply;
 
+extern std::shared_ptr<BaseReducer> get_reducer_from_task_factory(const std::string& user_id);
+extern std::shared_ptr<BaseMapper> get_mapper_from_task_factory(const std::string& user_id);
+
 class WorkerImpl final : public MapReduceMasterWorker::Service
 {
 private:
@@ -37,7 +40,7 @@ private:
 public:
   Status map(ServerContext* context, const ShardInfo* shard_info, MapperReply* mapper_reply) override
   {
-    auto mapper = get_mapper_from_task_factory(shard_info->user_id);
+    auto mapper = get_mapper_from_task_factory(shard_info->user_id());
     mapper->impl_->set_mapper_id(new_guid());
 
     auto& file_names = shard_info->file_names();
@@ -79,7 +82,7 @@ public:
 
   Status reduce(ServerContext* context, const TempFileInfo* temp_file_info, ReducerReply* reducer_reply) override
   {
-    auto reducer = get_reducer_from_task_factory(temp_file_info->user_id);
+    auto reducer = get_reducer_from_task_factory(temp_file_info->user_id());
     reducer->impl_->set_reducer_id(new_guid());
 
     std::map<std::string, std::vector<std::string> > kv_store;
