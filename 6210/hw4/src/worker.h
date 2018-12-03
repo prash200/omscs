@@ -11,8 +11,6 @@
 
 using grpc::Server;
 using grpc::ServerBuilder;
-using grpc::ServerAsyncResponseWriter;
-using grpc::ServerCompletionQueue;
 using grpc::ServerContext;
 using grpc::Status;
 using masterworker::MapReduceMasterWorker;

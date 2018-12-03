@@ -9,6 +9,11 @@
 #include "mapreduce_spec.h"
 #include "masterworker.grpc.pb.h"
 
+using grpc::Channel;
+using grpc::ClientAsyncResponseReader;
+using grpc::ClientContext;
+using grpc::CompletionQueue;
+using grpc::Status;
 using masterworker::MapReduceMasterWorker;
 using masterworker::ShardInfo;
 using masterworker::MapperReply;
@@ -61,10 +66,10 @@ Master::Master(const MapReduceSpec& mr_spec, const std::vector<FileShard>& file_
 
 bool Master::run()
 {
-  run_all_map_tasks();
+  this->run_all_map_tasks();
   std::unique_lock<std::mutex> lock(m_);
   cv_.wait(lock, [this]{ return completion_count_ == file_shards_.size(); });
-  run_all_reduce_tasks();
+  this->run_all_reduce_tasks();
   cv_.wait(lock, [this]{ return completion_count_ == mr_spec_.n_output_files; });
   
   return true;
@@ -110,7 +115,7 @@ inline bool Master::run_all_map_tasks()
 
   for (auto& file_shard : file_shards_)
   {
-    MasterImpl* master_impl = new MasterImpl(get_idle_worker(), this);
+    MasterImpl* master_impl = new MasterImpl(this->get_idle_worker(), this);
     std::thread(&MasterImpl::async_client_call_complete, &master_impl);
     master_impl->map(mr_spec_.user_id(), file_shard);
   }

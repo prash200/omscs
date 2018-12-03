@@ -70,7 +70,7 @@ inline bool shard_files(const MapReduceSpec& mr_spec, std::vector<FileShard>& fi
         }
         else
         {
-          input_file_offset = end + 1;
+          input_file_offset = end - end + end + 1;
         }
 
         curr_shard_size += end - begin + 1;
