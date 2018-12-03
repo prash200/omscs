@@ -112,13 +112,25 @@ public:
       GPR_ASSERT(ok);
       if (call->mapper_status.ok())
       {
-        master_->update_temp_file_name_map(call->mapper_reply.file_names());
+        std::vector<string> temp_file_names;
+        for (auto& file_name : call->mapper_reply.file_names())
+        {
+          temp_file_names.push_back(file_name);
+        }
+
+        master_->update_temp_file_name_map(temp_file_names);
         master_->update_worker_status(ip_addr_port_, AVAILABLE);
         master_->increment_completion_count();
       }
       else if (call->reducer_status.ok())
       {
-        master_->update_output_files(call->reducer_reply.file_names());
+        std::vector<string> output_file_names;
+        for (auto& file_name : call->reducer_reply.file_names())
+        {
+          output_file_names.push_back(file_name);
+        }
+
+        master_->update_output_files(output_file_names);
         master_->update_worker_status(ip_addr_port_, AVAILABLE);
         master_->increment_completion_count();
       }
@@ -239,7 +251,7 @@ inline void Master::run_all_reduce_tasks()
       ++curr_index_in_temp_file_name_map;
     }
 
-    MasterImpl* master_impl = MasterImpl(get_idle_worker(), this);
+    MasterImpl* master_impl = new MasterImpl(get_idle_worker(), this);
     std::thread(&MasterImpl::async_client_call_complete, &master_impl);
     master_impl->reduce(mr_spec_.user_id, temp_file_names);
 
