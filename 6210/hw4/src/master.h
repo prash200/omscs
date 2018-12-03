@@ -1,10 +1,9 @@
 #pragma once
 
-#include <grpc++/grpc++.h>
-#include <grpc/support/log.h>
-#include <unistd.h>
 #include <unordered_map>
 #include <thread>
+#include <grpc++/grpc++.h>
+#include <grpc/support/log.h>
 #include "file_shard.h"
 #include "mapreduce_spec.h"
 #include "masterworker.grpc.pb.h"
@@ -26,6 +25,7 @@ enum WORKER_STATUS
   BUSY
 };
 
+class MasterImpl;
 class Master
 {
 public:
