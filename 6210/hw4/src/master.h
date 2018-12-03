@@ -68,7 +68,7 @@ public:
     std::vector<std::string> file_names;
     std::vector<std::string> start_offsets;
     std::vector<std::string> end_offsets;
-    for(auto kv : file_shard)
+    for(auto kv : file_shard.shards)
     {
       file_names.push_back(kv.first);
       start_offsets.push_back(kv.second.first);
@@ -98,11 +98,11 @@ public:
 
     AsyncClientCall* call = new AsyncClientCall;
 
-    call->reduce_response_reader = stub_->Asyncreduce(&call->context, temp_file_info, &cq_);
+    call->reducer_response_reader = stub_->Asyncreduce(&call->context, temp_file_info, &cq_);
 
-    call->reduce_response_reader->StartCall();
+    call->reducer_response_reader->StartCall();
 
-    call->reduce_response_reader->Finish(&call->reducer_reply, &call->reducer_status, (void*)call);
+    call->reducer_response_reader->Finish(&call->reducer_reply, &call->reducer_status, (void*)call);
   }
 
   void async_client_call_complete()
