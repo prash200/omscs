@@ -3,7 +3,7 @@ CPPFLAGS += -I/usr/local/include -pthread
 CXXFLAGS += -std=c++11 -g
 LDFLAGS += -L/usr/local/lib `pkg-config --libs grpc++ grpc`       \
            -Wl,--no-as-needed -lgrpc++_reflection -Wl,--as-needed \
-           -lprotobuf -lpthread -ldl
+           -lprotobuf -lpthread -ldl -luuid
 
 MAPREDUCE_LIB = -L../external/lib -lmapreduce 
 MR_WORKER_LIB = -L../external/lib -lmr_worker
