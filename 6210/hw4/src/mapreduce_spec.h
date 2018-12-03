@@ -48,6 +48,7 @@ inline std::vector<std::string> split(const std::string& s, char delimiter)
 
 inline bool read_mr_spec_from_config_file(const std::string& config_filename, MapReduceSpec& mr_spec)
 {
+  std::cout<< config_filename << std::endl;
   std::unordered_map<std::string, std::vector<std::string> > map;
   std::ifstream config_file(config_filename);
   if (config_file.is_open())
@@ -55,9 +56,11 @@ inline bool read_mr_spec_from_config_file(const std::string& config_filename, Ma
     std::string spec;
     while (getline(config_file, spec, '='))
     {
+      std::cout<< spec << std::endl;
       spec = trim(spec);
       std::string value;
       getline(config_file, value);
+      std::cout<< value << std::endl;
       value = trim(value);
       if (spec.compare("n_workers") == 0)
       {
@@ -93,7 +96,9 @@ inline bool read_mr_spec_from_config_file(const std::string& config_filename, Ma
   }
   else
   {
+    std::cout<< "unable to open" << std::endl;
     std::cerr << "Failed to open file " << config_filename << std::endl;
+
     return false;
   }
 
@@ -103,22 +108,25 @@ inline bool read_mr_spec_from_config_file(const std::string& config_filename, Ma
 inline bool validate_mr_spec(const MapReduceSpec& mr_spec)
 {
   assert(mr_spec.n_workers > 0 && mr_spec.n_workers == mr_spec.worker_ipaddr_ports.size());
-  assert(mr_spec.n_output_files > 0 && mr_spec.map_kilobytes > 0);
+  assert(mr_spec.n_output_files > 0);
+  assert(mr_spec.map_kilobytes > 0);
   assert(mr_spec.output_dir.c_str() != nullptr);
   assert(mr_spec.user_id.c_str() != nullptr);
 
-  for (auto& input_file : mr_spec.input_files)
-  {
-    std::ifstream file(input_file);
-    assert(file.is_open());
-    file.close();
-  }
-
   for (auto& worker_ipaddr_port : mr_spec.worker_ipaddr_ports)
   {
+    std::cout<< worker_ipaddr_port << std::endl;
     std::vector<std::string> splits = split(worker_ipaddr_port, ':');
     assert(strncmp(splits[0].c_str(), "localhost", 9) == 0);
     assert(atoi(splits[1].c_str()) <= 65535);
+  }
+
+  for (auto& input_file : mr_spec.input_files)
+  {
+    std::cout<< input_file << std::endl;
+    std::ifstream file(input_file);
+    assert(file.is_open());
+    file.close();
   }
 
   return true;
