@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package masterworker;
+
+service MapReduceMasterWorker
+{
+  rpc map(ShardInfo) returns (MapperReply) {}
+  rpc reduce(TempFileInfo) returns (ReducerReply) {}
+}
+
+message ShardInfo
+{
+  repeated string file_names = 1;
+  repeated int32 start_offsets = 2;
+  repeated int32 end_offsets = 3;
+  string user_id = 4;
+}
+
+message MapperReply
+{
+  repeated string file_names = 1;
+}
+
+message TempFileInfo
+{
+  repeated string file_names = 1;
+  string user_id = 2;
+}
+
+message ReducerReply
+{
+  repeated string file_names = 1;
+}
