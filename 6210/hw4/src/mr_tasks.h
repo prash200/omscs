@@ -21,7 +21,7 @@ inline BaseMapperInternal::BaseMapperInternal() {}
 
 inline void BaseMapperInternal::emit(const std::string& key, const std::string& val)
 {
-  file_name = "output/mapper/" + mapper_id_ + "/" + key + ".txt";
+  std::string file_name = "output/mapper/" + mapper_id_ + "/" + key + ".txt";
   std::ofstream myfile(file_name, std::ios::app);
   if (myfile.is_open())
   {
@@ -47,6 +47,7 @@ struct BaseReducerInternal
   BaseReducerInternal();
 
   void emit(const std::string& key, const std::string& val);
+  void set_reducer_id(std::string reducer_id)
 
   std::unordered_set<std::string> output_file_names_;
   std::string reducer_id_;
@@ -56,7 +57,7 @@ inline BaseReducerInternal::BaseReducerInternal() {}
 
 inline void BaseReducerInternal::emit(const std::string& key, const std::string& val)
 {
-  file_name = "output/reducer/" + reducer_id_ + "/" + key + ".txt";
+  std::string file_name = "output/reducer/" + reducer_id_ + "/" + key + ".txt";
 
   std::ofstream myfile(file_name, std::ios::app);
   if (myfile.is_open())
