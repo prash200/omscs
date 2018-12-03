@@ -63,9 +63,9 @@ bool Master::run()
 {
   run_all_map_tasks();
   std::unique_lock<std::mutex> lock(m_);
-  cv_.wait(lock, [] { return completion_count_ == file_shards_.size(); });
+  cv_.wait(lock, [this]{ return completion_count_ == file_shards_.size(); });
   run_all_reduce_tasks();
-  cv_.wait(lock, [] { return completion_count_ == mr_spec_.n_output_files; });
+  cv_.wait(lock, [this]{ return completion_count_ == mr_spec_.n_output_files; });
   
   return true;
 }
@@ -165,7 +165,7 @@ inline std::string Master::get_idle_worker()
 
   is_worker_idle_ = false;
   std::unique_lock<std::mutex> lock(m_);
-  cv_.wait(lock, [] { return is_worker_idle_; });
+  cv_.wait(lock, [this]{ return is_worker_idle_; });
 
   return get_idle_worker();
 }
