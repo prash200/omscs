@@ -23,9 +23,19 @@ using masterworker::ReducerReply;
 extern std::shared_ptr<BaseReducer> get_reducer_from_task_factory(const std::string& user_id);
 extern std::shared_ptr<BaseMapper> get_mapper_from_task_factory(const std::string& user_id);
 
-class WorkerImpl final : public MapReduceMasterWorker::Service
+class Worker
 {
+public:
+  Worker(std::string ip_addr_port);
+  bool run();
+  void set_mapper_id(BaseMapper* mapper);
+  void set_reducer_id(BaseReducer* reducer);
+  std::unordered_set<std::string>& get_temp_file_names(BaseMapper* mapper);
+  std::unordered_set<std::string>& get_output_file_names(BaseReducer* reducer);
+
 private:
+  std::string ip_addr_port_;
+
   std::string new_guid()
   {
     uuid_t guid;
@@ -36,12 +46,23 @@ private:
 
     return std::string(guid_str);
   }
+};
+
+class WorkerImpl final : public MapReduceMasterWorker::Service
+{
+private:
+  Worker* worker_;
 
 public:
+  WorkerImpl(Worker* worker)
+  {
+    worker_ = worker;
+  }
+
   Status map(ServerContext* context, const ShardInfo* shard_info, MapperReply* mapper_reply) override
   {
     auto mapper = get_mapper_from_task_factory(shard_info->user_id());
-    mapper->impl_->set_mapper_id(new_guid());
+    worker_->set_mapper_id(mapper);
 
     auto& file_names = shard_info->file_names();
     auto& start_offsets = shard_info->start_offsets();
@@ -72,7 +93,7 @@ public:
       }
     }
 
-    for (auto& temp_file_name : mapper->impl_->temp_file_names_)
+    for (auto& temp_file_name : worker_->get_temp_file_names(mapper))
     {
       mapper_reply->set_file_names(0, temp_file_name);
     }
@@ -83,7 +104,7 @@ public:
   Status reduce(ServerContext* context, const TempFileInfo* temp_file_info, ReducerReply* reducer_reply) override
   {
     auto reducer = get_reducer_from_task_factory(temp_file_info->user_id());
-    reducer->impl_->set_reducer_id(new_guid());
+    worker_->set_reducer_id(reducer);
 
     std::map<std::string, std::vector<std::string> > kv_store;
     for (auto& file_name : temp_file_info->file_names())
@@ -115,23 +136,13 @@ public:
       reducer->reduce(kv.first, kv.second);
     }
 
-    for (auto& output_file_name : reducer->impl_->output_file_names_)
+    for (auto& output_file_name : worker_->get_output_file_names(reducer))
     {
       reducer_reply->set_file_names(0, output_file_name);
     }
 
     return Status::OK;
   }
-};
-
-class Worker
-{
-public:
-  Worker(std::string ip_addr_port);
-  bool run();
-
-private:
-  std::string ip_addr_port_;
 };
 
 Worker::Worker(std::string ip_addr_port)
@@ -141,7 +152,7 @@ Worker::Worker(std::string ip_addr_port)
 
 bool Worker::run()
 {
-  WorkerImpl service;
+  WorkerImpl service(this);
   ServerBuilder builder;
   builder.AddListeningPort(ip_addr_port_, grpc::InsecureServerCredentials());
   builder.RegisterService(&service);
@@ -150,4 +161,24 @@ bool Worker::run()
   server->Wait();
 
   return true;
+}
+
+void Worker::set_mapper_id(BaseMapper* mapper)
+{
+  mapper->impl_->mapper_id = new_guid();
+}
+
+void Worker::set_reducer_id(BaseReducer* reducer)
+{
+  reducer->impl_->reducer_id = new_guid();
+}
+
+std::unordered_set<std::string>& Worker::get_temp_file_names(BaseMapper* mapper)
+{
+  return mapper->impl_->temp_file_names;
+}
+
+std::unordered_set<std::string>& Worker::get_output_file_names(BaseReducer* reducer)
+{
+  return reducer->impl_->output_file_names;
 }
