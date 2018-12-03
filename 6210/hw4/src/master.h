@@ -26,6 +26,8 @@ enum WORKER_STATUS
   BUSY
 };
 
+class MasterImpl;
+
 class Master
 {
 public:
@@ -119,8 +121,6 @@ inline void Master::run_all_map_tasks()
     std::thread(&MasterImpl::async_client_call_complete, &master_impl);
     master_impl->map(mr_spec_.user_id(), file_shard);
   }
-
-  return true;
 }
 
 inline void Master::run_all_reduce_tasks()
@@ -152,8 +152,6 @@ inline void Master::run_all_reduce_tasks()
       n_keys_per_reducer = 1;      
     }
   }
-
-  return true;
 }
 
 inline std::string Master::get_idle_worker()
@@ -205,7 +203,7 @@ public:
 
     AsyncClientCall* call = new AsyncClientCall;
 
-    call->mapper_response_reader = stub_->map(&call->context, shard_info, &cq_);
+    call->mapper_response_reader = stub_->Asyncmap(&call->context, shard_info, &cq_);
 
     call->mapper_response_reader->StartCall();
 
@@ -220,7 +218,7 @@ public:
 
     AsyncClientCall* call = new AsyncClientCall;
 
-    call->reduce_response_reader = stub_->reduce(&call->context, temp_file_info, &cq_);
+    call->reduce_response_reader = stub_->Asyncreduce(&call->context, temp_file_info, &cq_);
 
     call->reduce_response_reader->StartCall();
 
