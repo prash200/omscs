@@ -105,8 +105,8 @@ inline bool shard_files(const MapReduceSpec& mr_spec, std::vector<FileShard>& fi
         unsigned long b = begin;
         unsigned long e = end;
         std::cout<< b << e << std::endl;
-        file_shards[curr_shard_num].start_offsets.push_back(std::to_string(b));
         file_shards[curr_shard_num].end_offsets.push_back(std::to_string(e));
+        file_shards[curr_shard_num].start_offsets.push_back(std::to_string(b));
       }
     }
   }
