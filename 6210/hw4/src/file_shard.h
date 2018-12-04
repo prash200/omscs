@@ -19,7 +19,7 @@ struct FileShard {
 /// return total input files size in bytes
 inline uint64_t get_totoal_size(const MapReduceSpec& mr_spec) {
   uint64_t totalSize = 0;
-  for (auto& input : mr_spec.inputFiles) {
+  for (auto& input : mr_spec.input_files) {
     std::ifstream myfile(input, std::ios::binary);
     myfile.seekg(0, std::ios::beg);
     std::streampos begin = myfile.tellg();
@@ -46,10 +46,10 @@ inline size_t get_input_size(std::ifstream& myfile) {
 inline bool shard_files(const MapReduceSpec& mr_spec,
                         std::vector<FileShard>& fileShards) {
   uint64_t totalSize = get_totoal_size(mr_spec);
-  size_t shardNums = std::ceil(totalSize / (mr_spec.mapSize * 1024.0)) + 1;
+  size_t shardNums = std::ceil(totalSize / (mr_spec.map_kilobytes * 1024.0)) + 1;
   fileShards.reserve(shardNums);
 
-  for (auto& input : mr_spec.inputFiles) {
+  for (auto& input : mr_spec.input_files) {
     std::ifstream myfile(input, std::ios::binary);
     uint64_t fileSize = get_input_size(myfile);
 
@@ -63,7 +63,7 @@ inline bool shard_files(const MapReduceSpec& mr_spec,
       std::streampos begin = myfile.tellg();
 
       // find offset end for a shard
-      myfile.seekg(mr_spec.mapSize * 1024, std::ios::cur);
+      myfile.seekg(mr_spec.map_kilobytes * 1024, std::ios::cur);
       std::streampos end = myfile.tellg();
 
       // if offset exceed size, set its end position
