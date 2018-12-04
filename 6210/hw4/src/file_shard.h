@@ -14,8 +14,8 @@
 struct FileShard 
 {
   std::vector<std::string> file_names;
-  std::vector<std::string> start_offsets;
-  std::vector<std::string> end_offsets;
+  std::vector<long> start_offsets;
+  std::vector<long> end_offsets;
 };
 
 inline uint64_t get_input_size(const std::string& file_name)
@@ -44,7 +44,6 @@ inline bool shard_files(const MapReduceSpec& mr_spec, std::vector<FileShard>& fi
 {
   uint64_t total_size = get_total_size(mr_spec);
   size_t n_shards = std::ceil(total_size / (mr_spec.map_kilobytes * 1024.0));
-  file_shards.reserve(n_shards);
   std::cout << n_shards << std::endl;
 
   for (size_t curr_shard_num = 0, input_file_index = 0, input_file_offset = 0 ; curr_shard_num < n_shards ; ++curr_shard_num)
@@ -80,12 +79,20 @@ inline bool shard_files(const MapReduceSpec& mr_spec, std::vector<FileShard>& fi
         }
 
         curr_shard_size += end - begin + 1;
-        file_shards[curr_shard_num].file_names.push_back(input_file);
-        unsigned long b = begin;
-        unsigned long e = end;
-        std::cout<< b << e << std::endl;
-        file_shards[curr_shard_num].start_offsets.push_back(std::to_string(b));
-        file_shards[curr_shard_num].end_offsets.push_back(std::to_string(e));
+
+        FileShard file_shard;
+        if (file_shards.size() <= curr_shard_num)
+        {
+          file_shards.push_back(file_shard);
+        }
+        else
+        {
+          file_shard = file_shards[curr_shard_num];
+        }
+
+        file_shard.file_names.push_back(input_file);
+        file_shard.start_offsets.push_back(begin);
+        file_shard.end_offsets.push_back(end);
       }
       else
       {
@@ -101,12 +108,20 @@ inline bool shard_files(const MapReduceSpec& mr_spec, std::vector<FileShard>& fi
         input_file_offset = 0;
 
         curr_shard_size += end - begin + 1;
-        file_shards[curr_shard_num].file_names.push_back(input_file);
-        unsigned long b = begin;
-        unsigned long e = end;
-        std::cout<< b << e << std::endl;
-        file_shards[curr_shard_num].end_offsets.push_back(std::to_string(e));
-        file_shards[curr_shard_num].start_offsets.push_back(std::to_string(b));
+
+        FileShard file_shard;
+        if (file_shards.size() <= curr_shard_num)
+        {
+          file_shards.push_back(file_shard);
+        }
+        else
+        {
+          file_shard = file_shards[curr_shard_num];
+        }
+
+        file_shard.file_names.push_back(input_file);
+        file_shard.start_offsets.push_back(begin);
+        file_shard.end_offsets.push_back(end);
       }
     }
   }
