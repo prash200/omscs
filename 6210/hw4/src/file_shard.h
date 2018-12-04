@@ -14,8 +14,8 @@
 struct FileShard 
 {
   std::vector<std::string> file_names;
-  std::vector<std::streampos> start_offsets;
-  std::vector<std::streampos> end_offsets;
+  std::vector<uint64_t> start_offsets;
+  std::vector<uint64_t> end_offsets;
 };
 
 inline uint64_t get_input_size(const std::string& file_name)

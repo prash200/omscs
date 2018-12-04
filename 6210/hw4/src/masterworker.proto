@@ -11,8 +11,8 @@ service MapReduceMasterWorker
 message ShardInfo
 {
   repeated string file_names = 1;
-  repeated int32 start_offsets = 2;
-  repeated int32 end_offsets = 3;
+  repeated int64 start_offsets = 2;
+  repeated int64 end_offsets = 3;
   string user_id = 4;
 }
 
