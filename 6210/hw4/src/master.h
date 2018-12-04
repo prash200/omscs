@@ -73,12 +73,12 @@ public:
 
     for(auto v : file_shard.start_offsets)
     {
-      shard_info.set_start_offsets(0, v);
+      shard_info.set_start_offsets(0, std::stol(v));
     }
 
     for(auto v : file_shard.end_offsets)
     {
-      shard_info.set_end_offsets(0, v);
+      shard_info.set_end_offsets(0, std::stol(v));
     }
 
     AsyncClientCall* call = new AsyncClientCall;

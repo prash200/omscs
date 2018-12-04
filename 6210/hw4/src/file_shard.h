@@ -14,8 +14,8 @@
 struct FileShard 
 {
   std::vector<std::string> file_names;
-  std::vector<unsigned long> start_offsets;
-  std::vector<unsigned long> end_offsets;
+  std::vector<std::string> start_offsets;
+  std::vector<std::string> end_offsets;
 };
 
 inline uint64_t get_input_size(const std::string& file_name)
@@ -84,8 +84,8 @@ inline bool shard_files(const MapReduceSpec& mr_spec, std::vector<FileShard>& fi
         unsigned long b = begin;
         unsigned long e = end;
         std::cout<< b << e << std::endl;
-        file_shards[curr_shard_num].start_offsets.push_back(b);
-        file_shards[curr_shard_num].end_offsets.push_back(e);
+        file_shards[curr_shard_num].start_offsets.push_back(std::to_string(b));
+        file_shards[curr_shard_num].end_offsets.push_back(std::to_string(e));
       }
       else
       {
@@ -105,8 +105,8 @@ inline bool shard_files(const MapReduceSpec& mr_spec, std::vector<FileShard>& fi
         unsigned long b = begin;
         unsigned long e = end;
         std::cout<< b << e << std::endl;
-        file_shards[curr_shard_num].start_offsets.push_back(b);
-        file_shards[curr_shard_num].end_offsets.push_back(e);
+        file_shards[curr_shard_num].start_offsets.push_back(std::to_string(b));
+        file_shards[curr_shard_num].end_offsets.push_back(std::to_string(e));
       }
     }
   }
