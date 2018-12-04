@@ -43,15 +43,19 @@ inline bool shard_files(const MapReduceSpec& mr_spec, std::vector<FileShard>& fi
   uint64_t total_size = get_total_size(mr_spec);
   size_t n_shards = std::ceil(total_size / (mr_spec.map_kilobytes * 1024.0));
   file_shards.reserve(n_shards);
+  std::cout << n_shards << std::endl;
 
   for (size_t curr_shard_num = 0, input_file_index = 0, input_file_offset = 0 ; curr_shard_num < n_shards ; ++curr_shard_num)
   {
     size_t curr_shard_size = 0;
+    std::cout << curr_shard_size << std::endl;
     while (curr_shard_size < mr_spec.map_kilobytes * 1024)
     {
+      std::cout << curr_shard_size << std::endl;
       std::string input_file = mr_spec.input_files[input_file_index];
       uint64_t input_file_size = get_input_size(input_file);
 
+      std::cout << input_file_size << std::endl;
       if (input_file_size - input_file_offset >= mr_spec.map_kilobytes * 1024 - curr_shard_size)
       {
         std::ifstream myfile(input_file, std::ios::binary);
@@ -74,7 +78,10 @@ inline bool shard_files(const MapReduceSpec& mr_spec, std::vector<FileShard>& fi
         }
 
         curr_shard_size += end - begin + 1;
-        file_shards[curr_shard_num].shards[input_file] = make_pair(begin, end);
+        std::pair<std::streampos, std::streampos> p = make_pair(begin, end);
+        std::cout<< p.first << std::endl;
+        std::cout<< p.second << std::endl;
+        file_shards[curr_shard_num].shards[input_file] = p;
       }
       else
       {
@@ -89,7 +96,10 @@ inline bool shard_files(const MapReduceSpec& mr_spec, std::vector<FileShard>& fi
         ++input_file_index;
         input_file_offset = 0;
         curr_shard_size += end - begin + 1;
-        file_shards[curr_shard_num].shards[input_file] = make_pair(begin, end);
+        std::pair<std::streampos, std::streampos> p = make_pair(begin, end);
+        std::cout<< p.first << std::endl;
+        std::cout<< p.second << std::endl;
+        file_shards[curr_shard_num].shards[input_file] = p;
       }
     }
   }
