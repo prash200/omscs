@@ -13,7 +13,9 @@
 
 struct FileShard 
 {
-  std::unordered_map<std::string, std::pair<std::streampos, std::streampos> > shards;
+  std::vector<std::string> file_names;
+  std::vector<std::streampos> start_offsets;
+  std::vector<std::streampos> end_offsets;
 };
 
 inline uint64_t get_input_size(const std::string& file_name)
@@ -78,10 +80,9 @@ inline bool shard_files(const MapReduceSpec& mr_spec, std::vector<FileShard>& fi
         }
 
         curr_shard_size += end - begin + 1;
-        std::pair<std::streampos, std::streampos> p = make_pair(begin, end);
-        std::cout<< p.first << std::endl;
-        std::cout<< p.second << std::endl;
-        file_shards[curr_shard_num].shards.insert(std::make_pair<std::string, std::pair<std::streampos, std::streampos> >(input_file, p));
+        file_shards[curr_shard_num].file_names.push_back(input_file);
+        file_shards[curr_shard_num].start_offsets.push_back(begin);
+        file_shards[curr_shard_num].end_offsets.push_back(end);
       }
       else
       {
@@ -95,11 +96,11 @@ inline bool shard_files(const MapReduceSpec& mr_spec, std::vector<FileShard>& fi
 
         ++input_file_index;
         input_file_offset = 0;
+
         curr_shard_size += end - begin + 1;
-        std::pair<std::streampos, std::streampos> p = make_pair(begin, end);
-        std::cout<< p.first << std::endl;
-        std::cout<< p.second << std::endl;
-        file_shards[curr_shard_num].shards.insert(std::make_pair<std::string, std::pair<std::streampos, std::streampos> >(input_file, p));
+        file_shards[curr_shard_num].file_names.push_back(input_file);
+        file_shards[curr_shard_num].start_offsets.push_back(begin);
+        file_shards[curr_shard_num].end_offsets.push_back(end);
       }
     }
   }

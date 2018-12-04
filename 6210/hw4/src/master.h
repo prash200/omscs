@@ -66,11 +66,19 @@ public:
   {
     ShardInfo shard_info;
     shard_info.set_user_id(user_id);
-    for(auto kv : file_shard.shards)
+    for(auto v : file_shard.file_names)
     {
-      shard_info.set_file_names(0, kv.first);
-      shard_info.set_start_offsets(0, kv.second.first);
-      shard_info.set_end_offsets(0, kv.second.second);
+      shard_info.set_file_names(0, v);
+    }
+
+    for(auto v : file_shard.start_offsets)
+    {
+      shard_info.set_start_offsets(0, v);
+    }
+
+    for(auto v : file_shard.end_offsets)
+    {
+      shard_info.set_end_offsets(0, v);
     }
 
     AsyncClientCall* call = new AsyncClientCall;
