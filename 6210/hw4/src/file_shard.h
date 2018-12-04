@@ -81,7 +81,7 @@ inline bool shard_files(const MapReduceSpec& mr_spec, std::vector<FileShard>& fi
         std::pair<std::streampos, std::streampos> p = make_pair(begin, end);
         std::cout<< p.first << std::endl;
         std::cout<< p.second << std::endl;
-        file_shards[curr_shard_num].shards[input_file] = p;
+        file_shards[curr_shard_num].shards.insert(std::make_pair<std::string, std::pair<std::streampos, std::streampos> >(input_file, p));
       }
       else
       {
@@ -99,7 +99,7 @@ inline bool shard_files(const MapReduceSpec& mr_spec, std::vector<FileShard>& fi
         std::pair<std::streampos, std::streampos> p = make_pair(begin, end);
         std::cout<< p.first << std::endl;
         std::cout<< p.second << std::endl;
-        file_shards[curr_shard_num].shards[input_file] = p;
+        file_shards[curr_shard_num].shards.insert(std::make_pair<std::string, std::pair<std::streampos, std::streampos> >(input_file, p));
       }
     }
   }
