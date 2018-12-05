@@ -77,12 +77,12 @@ public:
     count).get();
   }
 
-  void realse_product_from_vendor(std::string vendor_id, std::string product_name, size_t count)
+  void release_product_from_vendor(std::string vendor_id, std::string product_name, size_t count)
   {
     pool_->enqueue([](std::string vendor_id, std::string product_name, size_t count)
     {
       VendorClient vendor_client(grpc::CreateChannel(vendor_id, grpc::InsecureChannelCredentials()));
-      return vendor_client.realse_product(product_name, count);
+      return vendor_client.release_product(product_name, count);
     },
     vendor_id,
     product_name,

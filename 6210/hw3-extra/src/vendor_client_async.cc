@@ -151,7 +151,7 @@ public:
     GPR_ASSERT(ok);
     if (!status.ok()) 
     {
-      reply.set_totalCount(-1);
+      reply.set_totalcount(-1);
     }
 
     return reply;
