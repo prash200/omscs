@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package vendor;
+
+service Vendor {
+  // Get product bid
+  rpc getProductBid (BidQuery) returns (BidReply) {}
+
+  // Reserves a product from vendor
+  rpc reserveProduct (TransactionQuery) returns (TransactionReply) {}
+
+  // Releases previously reserved product back to available pool
+  rpc releaseProduct (TransactionQuery) returns (TransactionReply) {}
+
+  // Vendor Sells reserved product
+  rpc sellProduct (TransactionQuery) returns (TransactionReply) {}
+
+  // Get info on vendor state for a product
+  rpc getProductInfo (GetProductInfoQuery) returns (GetProductInfoReply) {}
+}
+
+// The request message containing product's name.
+message BidQuery {
+  string product_name = 1;
+}
+
+// The response message containing the product price
+message BidReply {
+  double price = 1;
+  string vendor_id = 2;
+}
+
+message TransactionQuery {
+  string product_name = 1;
+  int32 count = 2;
+}
+
+message TransactionReply {
+  bool success = 1;
+}
+
+message GetProductInfoQuery {
+  string product_name = 1;
+}
+
+message GetProductInfoReply {
+  string product_name = 1;
+  int32 totalCount = 2;
+  int32 available = 3;
+  int32 reserved = 4;
+  int32 sold = 5;
+}
+

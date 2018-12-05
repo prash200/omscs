@@ -1,0 +1,11 @@
+localhost:50051,book1,3
+localhost:50054,trimmer1,5
+localhost:50052,deodrant1,3
+localhost:50053,bike1,3
+
+localhost:50051,book1,3
+localhost:50051,trimmer1,5
+localhost:50052,deodrant1,3
+localhost:50053,bike1,3
+localhost:50054,laptop2,1
+localhost:50055,mobile1,3
