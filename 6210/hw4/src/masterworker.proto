@@ -2,32 +2,28 @@ syntax = "proto3";
 
 package masterworker;
 
-service MapReduceMasterWorker
-{
-  rpc map(ShardInfo) returns (MapperReply) {}
-  rpc reduce(TempFileInfo) returns (ReducerReply) {}
+// The masterworker service definition.
+service MasterWorker {
+  rpc mapReduce(MasterQuery) returns (WorkerReply) {}
 }
 
-message ShardInfo
-{
-  repeated string file_names = 1;
-  repeated int64 start_offsets = 2;
-  repeated int64 end_offsets = 3;
-  string user_id = 4;
+message WorkerReply {
+  repeated TempFiles temp_files = 1;
+  bool is_done = 2;
 }
 
-message MapperReply
-{
-  repeated string file_names = 1;
+message TempFiles { string filename = 1; }
+
+message MasterQuery {
+  repeated ShardInfo shard = 1; // input shard
+  int32 output_num = 2;         // number of outputs
+  string location = 3;          // location of intermediate files
+  bool is_map = 4;              // map or reduce function
+  string user_id = 5;           // user id
 }
 
-message TempFileInfo
-{
-  repeated string file_names = 1;
-  string user_id = 2;
-}
-
-message ReducerReply
-{
-  repeated string file_names = 1;
+message ShardInfo {
+  string filename = 1;
+  int32 off_start = 2;
+  int32 off_end = 3;
 }

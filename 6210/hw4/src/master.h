@@ -1,283 +1,240 @@
 #pragma once
 
-#include <unordered_map>
-#include <thread>
 #include <grpc++/grpc++.h>
 #include <grpc/support/log.h>
+#include <unistd.h>
+#include <unordered_set>
 #include "file_shard.h"
 #include "mapreduce_spec.h"
 #include "masterworker.grpc.pb.h"
+#include "smart_ptrs.h"
+#include "thread_pool.h"
 
-using grpc::Channel;
-using grpc::ClientAsyncResponseReader;
-using grpc::ClientContext;
-using grpc::CompletionQueue;
-using grpc::Status;
-using masterworker::MapReduceMasterWorker;
+using masterworker::MasterWorker;
+using masterworker::MasterQuery;
+using masterworker::WorkerReply;
 using masterworker::ShardInfo;
-using masterworker::MapperReply;
-using masterworker::TempFileInfo;
-using masterworker::ReducerReply;
+using masterworker::TempFiles;
 
-enum WORKER_STATUS
-{
+enum WORKER_STATUS {
   AVAILABLE,
-  BUSY
+  BUSY,
 };
 
-class Master
-{
+/* CS6210_TASK: Handle all the bookkeeping that Master is supposed to do.
+        This is probably the biggest task for this project, will test your
+   understanding of map reduce */
+class Master {
 public:
+  /* DON'T change the function signature of this constructor */
   Master(const MapReduceSpec&, const std::vector<FileShard>&);
+
+  /* DON'T change this function's signature */
   bool run();
-  void update_worker_status(const std::string& ip_addr_port, WORKER_STATUS status);
-  void update_temp_file_name_map(const std::vector<std::string>& temp_file_names);
-  void update_output_files(const std::vector<std::string>& output_file_names);
-  void increment_completion_count();
 
 private:
-  void run_all_map_tasks();
-  void run_all_reduce_tasks();
-  std::string get_idle_worker();
+  bool runMapProc();
+  bool runReduceProc();
+  bool remoteCallMap(const std::string& ip_addr_port,
+                     const FileShard& file_shard);
+  bool remoteCallReduce(const std::string& ip_addr_port,
+                        const std::string& file_name);
+  std::string selectIdleWorker();
 
+  /* NOW you can add below, data members and member functions as per the need of
+   * your implementation*/
+
+  // raw data and worker info
   MapReduceSpec mr_spec_;
   std::vector<FileShard> file_shards_;
+
+  // worker status: AVAILABLE, BUSY
   std::unordered_map<std::string, WORKER_STATUS> worker_status_;
-  std::unordered_map<std::string, std::vector<std::string> > temp_file_name_map_;
-  std::vector<std::string> output_file_names_;
-  size_t completion_count_;
-  bool is_worker_idle_;
 
-  std::mutex m_;
-  std::condition_variable cv_;
+  // save temp filenames from workers
+  std::unordered_set<std::string> temp_filename_;
+
+  // master built-in thread pool
+  std::unique_ptr<ThreadPool> thread_pool_;
+
+  std::mutex mutex_;
+  std::mutex mutextask_;
+
+  // notify when all map task have been done
+  int count_;
+  std::condition_variable notEmpty_;
 };
 
-class MasterImpl
-{
-public:
-  explicit MasterImpl(std::string ip_addr_port, Master* master)
-  {
-    ip_addr_port_ = ip_addr_port;
-    master_ = master;
-    stub_ = MapReduceMasterWorker::NewStub(grpc::CreateChannel(ip_addr_port, grpc::InsecureChannelCredentials()));
-  }
-
-  void map(const std::string& user_id, const FileShard& file_shard)
-  {
-    ShardInfo shard_info;
-    shard_info.set_user_id(user_id);
-    for(auto& kv : file_shard.shardsMap)
-    {
-      shard_info.set_file_names(0, kv.first);
-      shard_info.set_start_offsets(0, kv.second.first);
-      shard_info.set_end_offsets(0, kv.second.second);
-    }
-
-    AsyncClientCall* call = new AsyncClientCall;
-
-    call->mapper_response_reader = stub_->Asyncmap(&call->context, shard_info, &cq_);
-
-    call->mapper_response_reader->StartCall();
-
-    call->mapper_response_reader->Finish(&call->mapper_reply, &call->mapper_status, (void*)call);
-  }
-
-  void reduce(const std::string& user_id, const std::vector<std::string>& temp_file_names)
-  {
-    TempFileInfo temp_file_info;
-    temp_file_info.set_user_id(user_id);
-    for (auto& temp_file_name : temp_file_names)
-    {
-      temp_file_info.set_file_names(0, temp_file_name);
-    }
-
-    AsyncClientCall* call = new AsyncClientCall;
-
-    call->reducer_response_reader = stub_->Asyncreduce(&call->context, temp_file_info, &cq_);
-
-    call->reducer_response_reader->StartCall();
-
-    call->reducer_response_reader->Finish(&call->reducer_reply, &call->reducer_status, (void*)call);
-  }
-
-  void async_client_call_complete()
-  {
-    void* got_tag;
-    bool ok = false;
-    while (cq_.Next(&got_tag, &ok))
-    {
-      AsyncClientCall* call = static_cast<AsyncClientCall*>(got_tag);
-
-      GPR_ASSERT(ok);
-      if (call->mapper_status.ok())
-      {
-        std::vector<std::string> temp_file_names;
-        for (auto& file_name : call->mapper_reply.file_names())
-        {
-          temp_file_names.push_back(file_name);
-        }
-
-        master_->update_temp_file_name_map(temp_file_names);
-        master_->update_worker_status(ip_addr_port_, AVAILABLE);
-        master_->increment_completion_count();
-      }
-      else if (call->reducer_status.ok())
-      {
-        std::vector<std::string> output_file_names;
-        for (auto& file_name : call->reducer_reply.file_names())
-        {
-          output_file_names.push_back(file_name);
-        }
-
-        master_->update_output_files(output_file_names);
-        master_->update_worker_status(ip_addr_port_, AVAILABLE);
-        master_->increment_completion_count();
-      }
-      else
-      {
-        std::cout << "RPC failed" << std::endl;
-      }
-
-      delete call;
-      delete this;
-    }
-  }
-
-private:
-  struct AsyncClientCall
-  {
-    MapperReply mapper_reply;
-    ReducerReply reducer_reply;
-
-    ClientContext context;
-
-    Status mapper_status;
-    Status reducer_status;
-
-    std::unique_ptr<ClientAsyncResponseReader<MapperReply> > mapper_response_reader;
-    std::unique_ptr<ClientAsyncResponseReader<ReducerReply> > reducer_response_reader;
-  };
-
-  std::string ip_addr_port_;
-  Master *master_;
-  std::unique_ptr<MapReduceMasterWorker::Stub> stub_;
-  CompletionQueue cq_;
-};
-
-Master::Master(const MapReduceSpec& mr_spec, const std::vector<FileShard>& file_shards)
-{
+/* CS6210_TASK: This is all the information your master will get from the
+   framework.
+        You can populate your other class data members here if you want */
+Master::Master(const MapReduceSpec& mr_spec,
+               const std::vector<FileShard>& file_shards) {
+  // register built-in thread pool for master
+  // for simplicity, thread and worker connection is one-to-one map
+  thread_pool_ = make_unique<ThreadPool>(mr_spec.workerNums);
   mr_spec_ = mr_spec;
-  file_shards_ = file_shards;
+  file_shards_ = std::move(file_shards);
 
-  for (auto& worker_ipaddr_port : mr_spec.worker_ipaddr_ports)
-  {
-    worker_status_[worker_ipaddr_port] = AVAILABLE;
+  for (auto& work_addr : mr_spec.workerAddrs) {
+    worker_status_[work_addr] = AVAILABLE;
   }
 }
 
-bool Master::run()
-{
-  run_all_map_tasks();
-  std::unique_lock<std::mutex> lock(m_);
-  cv_.wait(lock, [this]{ return completion_count_ == file_shards_.size(); });
-  run_all_reduce_tasks();
-  cv_.wait(lock, [this]{ return completion_count_ == mr_spec_.n_output_files; });
-  
+inline std::string Master::selectIdleWorker() {
+  for (auto& work_addr : mr_spec_.workerAddrs) {
+    if (worker_status_[work_addr] == AVAILABLE) {
+      worker_status_[work_addr] = BUSY;
+      return work_addr;
+    }
+  }
+  return "";
+}
+
+bool Master::runMapProc() {
+  count_ = file_shards_.size();
+  for (int i = 0; i < file_shards_.size(); ++i) {
+    thread_pool_->AddTask([&, i]() {
+      std::string idleWorker;
+      do {
+        {
+          std::lock_guard<std::mutex> lock(mutex_);
+          idleWorker = selectIdleWorker();
+        }
+      } while (idleWorker.empty());
+      // map function ...
+      remoteCallMap(idleWorker, file_shards_[i]);
+      notEmpty_.notify_one();
+    });
+  }
   return true;
 }
 
-inline void Master::update_temp_file_name_map(const std::vector<std::string>& temp_file_names)
-{
-  for (auto& temp_file_name : temp_file_names)
-  {
-    std::string key = temp_file_name.substr(temp_file_name.find_last_of('/'));
-    if (temp_file_name_map_.count(key) == 0)
-    {
-      temp_file_name_map_[key] = std::vector<std::string>();
-    }
+bool Master::remoteCallMap(const std::string& ip_addr_port,
+                           const FileShard& file_shard) {
+  std::unique_ptr<MasterWorker::Stub> stub_ = MasterWorker::NewStub(
+      grpc::CreateChannel(ip_addr_port, grpc::InsecureChannelCredentials()));
 
-    temp_file_name_map_[key].push_back(temp_file_name);
-  }
-}
+  // 1. set grpc query parameters
+  MasterQuery query;
+  query.set_is_map(true);
+  query.set_user_id(mr_spec_.userId);
+  query.set_output_num(mr_spec_.outputNums);
 
-inline void Master::update_worker_status(const std::string& ip_addr_port, WORKER_STATUS status)
-{
-  if (status == AVAILABLE)
-  {
-    is_worker_idle_ = true;
+  for (auto& shardmap : file_shard.shardsMap) {
+    ShardInfo* shard_info = query.add_shard();
+    shard_info->set_filename(shardmap.first);
+    shard_info->set_off_start(static_cast<int>(shardmap.second.first));
+    shard_info->set_off_end(static_cast<int>(shardmap.second.second));
   }
 
-  worker_status_[ip_addr_port] = status;
-}
+  // 2. set async grpc service
+  WorkerReply reply;
+  grpc::ClientContext context;
+  grpc::CompletionQueue cq;
+  grpc::Status status;
 
-inline void Master::update_output_files(const std::vector<std::string>& output_file_names)
-{
-  output_file_names_.insert(output_file_names_.end(), output_file_names.begin(), output_file_names.end());
-}
+  std::unique_ptr<grpc::ClientAsyncResponseReader<WorkerReply>> rpc(
+      stub_->AsyncmapReduce(&context, query, &cq));
 
-inline void Master::increment_completion_count()
-{
-  completion_count_ += 1;
-}
+  rpc->Finish(&reply, &status, (void*)1);
+  void* got_tag;
+  bool ok = false;
+  GPR_ASSERT(cq.Next(&got_tag, &ok));
+  GPR_ASSERT(got_tag == (void*)1);
+  GPR_ASSERT(ok);
 
-inline void Master::run_all_map_tasks()
-{
-  completion_count_ = 0;
-
-  for (auto& file_shard : file_shards_)
-  {
-    MasterImpl* master_impl = new MasterImpl(get_idle_worker(), this);
-    std::thread(&MasterImpl::async_client_call_complete, master_impl);
-    master_impl->map(mr_spec_.user_id, file_shard);
-  }
-}
-
-inline void Master::run_all_reduce_tasks()
-{
-  completion_count_ = 0;
-
-  size_t n_keys_per_reducer = std::ceil(double(temp_file_name_map_.size()) / mr_spec_.n_output_files);
-  size_t curr_index_in_temp_file_name_map = 0;
-  size_t n_curr_output_files = 0;
-  while (curr_index_in_temp_file_name_map < temp_file_name_map_.size())
-  {
-    std::vector<std::string> temp_file_names;
-    for (size_t n_keys_curr_reducer = 0 ; n_keys_curr_reducer < n_keys_per_reducer ; ++n_keys_curr_reducer)
-    {
-      temp_file_names.insert(temp_file_names.end(), 
-        std::next(temp_file_name_map_.begin(), curr_index_in_temp_file_name_map)->second.begin(),
-        std::next(temp_file_name_map_.begin(), curr_index_in_temp_file_name_map)->second.end());
-      ++curr_index_in_temp_file_name_map;
-    }
-
-    MasterImpl* master_impl = new MasterImpl(get_idle_worker(), this);
-    std::thread(&MasterImpl::async_client_call_complete, master_impl);
-    master_impl->reduce(mr_spec_.user_id, temp_file_names);
-
-    ++n_curr_output_files;
-    if (n_keys_per_reducer != 1 &&
-      (temp_file_name_map_.size() - curr_index_in_temp_file_name_map == mr_spec_.n_output_files - n_curr_output_files))
-    {
-      n_keys_per_reducer = 1;      
-    }
-  }
-}
-
-inline std::string Master::get_idle_worker()
-{
-  for (auto& worker_ipaddr_port : mr_spec_.worker_ipaddr_ports)
-  {
-    if (worker_status_[worker_ipaddr_port] == AVAILABLE)
-    {
-      worker_status_[worker_ipaddr_port] = BUSY;
-
-      return worker_ipaddr_port;
-    }
+  if (!status.ok()) {
+    std::cout << status.error_code() << ": " << status.error_message()
+              << std::endl;
+    return false;
   }
 
-  is_worker_idle_ = false;
-  std::unique_lock<std::mutex> lock(m_);
-  cv_.wait(lock, [this]{ return is_worker_idle_; });
+  // 3. master receive intermediate file names
+  std::cout << "receive temp filenames from " << ip_addr_port << std::endl;
+  int size = reply.temp_files_size();
+  for (int i = 0; i < size; ++i) {
+    temp_filename_.insert(reply.temp_files(i).filename());
+  }
 
-  return get_idle_worker();
+  // 4. recover server to available
+  worker_status_[ip_addr_port] = AVAILABLE;
+
+  return true;
+}
+
+bool Master::runReduceProc() {
+  count_ = temp_filename_.size();
+  for (auto& temp_input : temp_filename_) {
+    thread_pool_->AddTask([&]() {
+      std::string idleWorker;
+      do {
+        {
+          std::lock_guard<std::mutex> lock(mutex_);
+          idleWorker = selectIdleWorker();
+        }
+      } while (idleWorker.empty());
+      // map function ...
+      remoteCallReduce(idleWorker, temp_input);
+      notEmpty_.notify_one();
+    });
+  }
+
+  return true;
+}
+
+bool Master::remoteCallReduce(const std::string& ip_addr_port,
+                              const std::string& file_name) {
+  std::unique_ptr<MasterWorker::Stub> stub_ = MasterWorker::NewStub(
+      grpc::CreateChannel(ip_addr_port, grpc::InsecureChannelCredentials()));
+
+  // 1. set grpc query parameters
+  MasterQuery query;
+  query.set_is_map(false);  // reduce procedure
+  query.set_user_id(mr_spec_.userId);
+  query.set_location(file_name);
+
+  // 2. set async grpc service
+  WorkerReply reply;
+  grpc::ClientContext context;
+  grpc::CompletionQueue cq;
+  grpc::Status status;
+
+  std::unique_ptr<grpc::ClientAsyncResponseReader<WorkerReply>> rpc(
+      stub_->AsyncmapReduce(&context, query, &cq));
+
+  rpc->Finish(&reply, &status, (void*)1);
+  void* got_tag;
+  bool ok = false;
+  GPR_ASSERT(cq.Next(&got_tag, &ok));
+  GPR_ASSERT(got_tag == (void*)1);
+  GPR_ASSERT(ok);
+
+  if (!status.ok()) {
+    std::cout << status.error_code() << ": " << status.error_message()
+              << std::endl;
+    return false;
+  }
+
+  // 3. finish grpc
+  GPR_ASSERT(reply.is_done());
+
+  // 4. recover server to available
+  worker_status_[ip_addr_port] = AVAILABLE;
+
+  return true;
+}
+
+/* CS6210_TASK: Here you go. once this function is called you will complete
+ * whole map reduce task and return true if succeeded */
+bool Master::run() {
+  GPR_ASSERT(runMapProc());
+  // for simplicity, once all map tasks done, reduce will start to execution
+  std::unique_lock<std::mutex> lock(mutextask_);
+  notEmpty_.wait(lock, [this] { return --count_ == 1; });
+  GPR_ASSERT(runReduceProc());
+  notEmpty_.wait(lock, [this] { return --count_ == 1; });
+  std::cout << "map reduce job done .........." << std::endl;
+
+  return true;
 }
