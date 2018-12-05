@@ -58,7 +58,8 @@ public:
     return pool_->enqueue([](std::string vendor_id, std::string product_name, size_t count)
     {
       VendorClient vendor_client(grpc::CreateChannel(vendor_id, grpc::InsecureChannelCredentials()));
-      return vendor_client.get_product_info(product_name).available() >= count;
+      return true;
+      //return vendor_client.get_product_info(product_name).available() >= count;
     },
     vendor_id,
     product_name,
@@ -124,6 +125,7 @@ private:
         bool success;
         for (auto& query_item : request_.query_items())
         {
+          std::cout << this << " " << query_item.vendor_id() << " " << query_item.product_name() << " " << query_item.count() << std::endl;
           // This is just a primary check to see if the items are available with a vendor.
           // Even if this check succeeds, it doesn't mean the transaction would be successful. We would still need the following state machine.
           // It adoids obvious reservation followed by release when items are not available with a vendor latter in the list.
