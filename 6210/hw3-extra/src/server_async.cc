@@ -58,8 +58,7 @@ public:
     return pool_->enqueue([](std::string vendor_id, std::string product_name, size_t count)
     {
       VendorClient vendor_client(grpc::CreateChannel(vendor_id, grpc::InsecureChannelCredentials()));
-      return true;
-      //return vendor_client.get_product_info(product_name).available() >= count;
+      return vendor_client.get_product_info(product_name).available() >= count;
     },
     vendor_id,
     product_name,
