@@ -112,7 +112,7 @@ public:
 
     ClientContext context;
     CompletionQueue cq;
-    std::unique_ptr<ClientAsyncResponseReader<TransactionReply> > rpc(stub_->AsyncbuyProduct(&context, request, &cq));
+    std::unique_ptr<ClientAsyncResponseReader<TransactionReply> > rpc(stub_->AsyncsellProduct(&context, request, &cq));
 
     TransactionReply reply;
     Status status;
