@@ -53,48 +53,52 @@ public:
     HandleRpcs();
   }
 
-  bool check_product_availibility_from_vendor(std::string vendor_id, std::string product_name, std::string count)
+  bool check_product_availibility_from_vendor(std::string vendor_id, std::string product_name, size_t count)
   {
-    return pool_->enqueue([](std::string vendor_id, std::string product_name, std::string count)
+    return pool_->enqueue([](std::string vendor_id, std::string product_name, size_t count)
     {
       VendorClient vendor_client(grpc::CreateChannel(vendor_id, grpc::InsecureChannelCredentials()));
       return vendor_client.get_product_info(product_name).available() >= count;
     },
+    vendor_id,
     product_name,
-    vendor_address).get();
+    count).get();
   }
 
-  bool reserve_product_from_vendor(std::string vendor_id, std::string product_name, std::string count)
+  bool reserve_product_from_vendor(std::string vendor_id, std::string product_name, size_t count)
   {
-    return pool_->enqueue([](std::string vendor_id, std::string product_name, std::string count)
+    return pool_->enqueue([](std::string vendor_id, std::string product_name, size_t count)
     {
       VendorClient vendor_client(grpc::CreateChannel(vendor_id, grpc::InsecureChannelCredentials()));
       return vendor_client.reserve_product(product_name, count).success();
     },
+    vendor_id,
     product_name,
-    vendor_address).get();
+    count).get();
   }
 
-  void realse_product_from_vendor(std::string vendor_id, std::string product_name, std::string count)
+  void realse_product_from_vendor(std::string vendor_id, std::string product_name, size_t count)
   {
-    pool_->enqueue([](std::string vendor_id, std::string product_name, std::string count)
+    pool_->enqueue([](std::string vendor_id, std::string product_name, size_t count)
     {
       VendorClient vendor_client(grpc::CreateChannel(vendor_id, grpc::InsecureChannelCredentials()));
       return vendor_client.realse_product(product_name, count);
     },
+    vendor_id,
     product_name,
-    vendor_address).get();
+    count).get();
   }
 
-  void buy_product_from_vendor(std::string vendor_id, std::string product_name, std::string count)
+  void buy_product_from_vendor(std::string vendor_id, std::string product_name, size_t count)
   {
-    pool_->enqueue([](std::string vendor_id, std::string product_name, std::string count)
+    pool_->enqueue([](std::string vendor_id, std::string product_name, size_t count)
     {
       VendorClient vendor_client(grpc::CreateChannel(vendor_id, grpc::InsecureChannelCredentials()));
       return vendor_client.buy_product(product_name, count);
     },
+    vendor_id,
     product_name,
-    vendor_address).get();
+    count).get();
   }
 
 private:
