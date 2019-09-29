@@ -258,6 +258,7 @@ public:
         ,btb(  i, fetchWidth, section) {
         // Done
     }
+    ~BPNotTaken();
 
     PredType predict(const Instruction * inst, InstID oracleID, bool doUpdate);
 
