@@ -105,7 +105,7 @@ protected:
 
     void reportPredStats(const char *type) {
         double counts[4], hits[4], misses[4];
-        for (std::map<InstID, std::pair<unsigned long long, unsigned long long> >::iterator it=instCountsMap.begin(); it!=instCountsMap.end(); ++it) {
+        for (std::map<InstID, std::pair<unsigned long long, unsigned long long> >::iterator it=predStatsMap.begin(); it!=predStatsMap.end(); ++it) {
             if (((it->second).first + (it->second).second) < 10) {
                 counts[0] += 1;
                 hits[0] += (it->second).first;
@@ -125,13 +125,13 @@ protected:
             }
         }
 
-        std::cout << "Number of instructions completed [1-9], [10-99], [100-999], [1000, ...) times respectively are: "
+        std::cout << "Number of instructions completed [1-9], [10-99], [100-999], [1000, ...) times respectively are: ";
         for (int i = 0; i < 3; ++i) {
             std::cout << counts[i] << ", ";
         }
         std::cout << counts[3] << std::endl << std::endl;
 
-        std::cout << "Type: " << type << ". Accuracy for instructions completed [1-9], [10-99], [100-999], [1000, ...) times respectively are: "
+        std::cout << "Type: " << type << ". Accuracy for instructions completed [1-9], [10-99], [100-999], [1000, ...) times respectively are: ";
         for (int i = 0; i < 3; ++i) {
             std::cout << (hits[i]/(hits[i]+misses[i]))*100 << ", ";
         }
