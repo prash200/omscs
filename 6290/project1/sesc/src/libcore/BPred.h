@@ -240,6 +240,7 @@ public:
         :BPred(i, fetchWidth, section, "NotTaken") {
         // Done
     }
+    ~BPNotTaken();
 
     PredType predict(const Instruction * inst, InstID oracleID, bool doUpdate);
 
@@ -258,7 +259,6 @@ public:
         ,btb(  i, fetchWidth, section) {
         // Done
     }
-    ~BPNotTaken();
 
     PredType predict(const Instruction * inst, InstID oracleID, bool doUpdate);
 
