@@ -69,35 +69,6 @@ BPred::~BPred()
 {
     if(bpredEnergy)
         delete bpredEnergy;
-
-    double counts[4], hits[4], misses[4];
-    for (std::map<InstID, std::pair<uint, uint> >::iterator it=instCountsMap.begin(); it!=instCountsMap.end(); ++it) {
-        if (((it->second).first + (it->second).second) < 10) {
-            counts[0] += 1;
-            hits[0] += (it->second).first;
-            misses[0] += (it->second).second;
-        } else if (((it->second).first + (it->second).second) < 100) {
-            counts[1] += 1;
-            hits[1] += (it->second).first;
-            misses[1] += (it->second).second;
-        } else if (((it->second).first + (it->second).second) < 1000) {
-            counts[2] += 1;
-            hits[2] += (it->second).first;
-            misses[2] += (it->second).second;
-        } else {
-            counts[3] += 1;
-            hits[3] += (it->second).first;
-            misses[3] += (it->second).second;
-        }
-    }
-
-    for (int i = 0; i < 4; ++i) {
-        std::cout << counts[i] << std::endl;
-    }
-
-    for (int i = 0; i < 4; ++i) {
-        std::cout << (hits[i]/(hits[i]+misses[i]))*100 << std::endl;
-    }
 }
 
 /*****************************************
@@ -346,6 +317,11 @@ void BPTaken::switchOut(Pid_t pid)
  * BPNotTaken
  */
 
+BPNotTaken::~BPNotTaken()
+{
+    reportPredStats("NotTaken");
+}
+
 PredType  BPNotTaken::predict(const Instruction * inst, InstID oracleID, bool doUpdate)
 {
     bpredEnergy->inc();
@@ -567,6 +543,7 @@ BPHybrid::BPHybrid(int32_t i, int32_t fetchWidth, const char *section)
 
 BPHybrid::~BPHybrid()
 {
+    reportPredStats("Hybrid");
 }
 
 PredType BPHybrid::predict(const Instruction *inst, InstID oracleID, bool doUpdate)
