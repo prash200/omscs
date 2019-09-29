@@ -96,7 +96,7 @@ BPred::~BPred()
     }
 
     for (int i = 0; i < 4; ++i) {
-        std::cout << double(hits[i]/(hits[i]+misses[i]))*100 << std::endl;
+        std::cout << double(hits[i]/double(hits[i]+misses[i]))*100 << std::endl;
     }
 }
 
