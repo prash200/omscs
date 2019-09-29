@@ -71,7 +71,7 @@ BPred::~BPred()
         delete bpredEnergy;
 
     for (std::map<InstID, std::pair<uint, uint> >::iterator it=instCountsMap.begin(); it!=instCountsMap.end(); ++it)
-        std::cout << it->first << " => " << it->second << '\n';
+        std::cout << it->first << " => " << (it->second).first << ", " << (it->second).second << '\n';
 }
 
 /*****************************************
