@@ -64,6 +64,8 @@ public:
     };
 
 protected:
+    std::map<InstID, std::pair<uint, uint> > instCountsMap; // Count hit and miss per instruction
+
     const int32_t id;
 
     GStatsCntr nHit;  // N.B. predictors should not update these counters directly
@@ -96,6 +98,21 @@ public:
         if (!doUpdate || pred == NoPrediction)
             return pred;
 
+        std::pair<uint, uint> instCounts;
+        if (instCountsMap.find(inst->CurrentId()) != instCountsMap.end()) {
+            instCounts = instCountsMap[inst->CurrentId()];
+        } else {
+            instCounts = std::make_pair(0, 0);
+        }
+
+        if (pred == CorrectPrediction) {
+            instCounts.first += 1
+        } else {
+            instCounts.second += 1
+        }
+
+        instCountsMap[inst->CurrentId()] = instCounts;
+    
         nHit.cinc(pred == CorrectPrediction);
         nMiss.cinc(pred != CorrectPrediction);
 
