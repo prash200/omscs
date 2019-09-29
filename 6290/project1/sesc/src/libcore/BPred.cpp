@@ -70,17 +70,17 @@ BPred::~BPred()
     if(bpredEnergy)
         delete bpredEnergy;
 
-    long counts[4], hits[4], misses[4];
+    double counts[4], hits[4], misses[4];
     for (std::map<InstID, std::pair<uint, uint> >::iterator it=instCountsMap.begin(); it!=instCountsMap.end(); ++it) {
-        if ((it->second).first + (it->second).second < 10) {
+        if (((it->second).first + (it->second).second) < 10) {
             counts[0] += 1;
             hits[0] += (it->second).first;
             misses[0] += (it->second).second;
-        } else if ((it->second).first + (it->second).second < 100) {
+        } else if (((it->second).first + (it->second).second) < 100) {
             counts[1] += 1;
             hits[1] += (it->second).first;
             misses[1] += (it->second).second;
-        } else if ((it->second).first + (it->second).second < 1000) {
+        } else if (((it->second).first + (it->second).second) < 1000) {
             counts[2] += 1;
             hits[2] += (it->second).first;
             misses[2] += (it->second).second;
@@ -96,7 +96,7 @@ BPred::~BPred()
     }
 
     for (int i = 0; i < 4; ++i) {
-        std::cout << double(hits[i]/double(hits[i]+misses[i]))*100 << std::endl;
+        std::cout << (hits[i]/(hits[i]+misses[i]))*100 << std::endl;
     }
 }
 
