@@ -99,19 +99,19 @@ public:
             return pred;
 
         std::pair<uint, uint> instCounts;
-        if (instCountsMap.find(inst->CurrentId()) != instCountsMap.end()) {
-            instCounts = instCountsMap[inst->CurrentId()];
+        if (instCountsMap.find(inst->CurrentID()) != instCountsMap.end()) {
+            instCounts = instCountsMap[inst->CurrentID()];
         } else {
             instCounts = std::make_pair(0, 0);
         }
 
         if (pred == CorrectPrediction) {
-            instCounts.first += 1
+            instCounts.first += 1;
         } else {
-            instCounts.second += 1
+            instCounts.second += 1;
         }
 
-        instCountsMap[inst->CurrentId()] = instCounts;
+        instCountsMap[inst->CurrentID()] = instCounts;
     
         nHit.cinc(pred == CorrectPrediction);
         nMiss.cinc(pred != CorrectPrediction);
