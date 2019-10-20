@@ -317,11 +317,6 @@ void BPTaken::switchOut(Pid_t pid)
  * BPNotTaken
  */
 
-BPNotTaken::~BPNotTaken()
-{
-    reportPredStats("NotTaken");
-}
-
 PredType  BPNotTaken::predict(const Instruction * inst, InstID oracleID, bool doUpdate)
 {
     bpredEnergy->inc();
@@ -543,7 +538,6 @@ BPHybrid::BPHybrid(int32_t i, int32_t fetchWidth, const char *section)
 
 BPHybrid::~BPHybrid()
 {
-    reportPredStats("Hybrid");
 }
 
 PredType BPHybrid::predict(const Instruction *inst, InstID oracleID, bool doUpdate)
