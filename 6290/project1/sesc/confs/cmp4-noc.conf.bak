@@ -184,7 +184,7 @@ bsize = $(cacheLineSize)
 # data source
 [DMemory]
 deviceType    = 'smpcache'
-size          = 1*1024		
+size          = 32*1024		
 assoc         = 4 
 bsize         = $(cacheLineSize)
 writePolicy   = 'WB'
