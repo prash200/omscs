@@ -1982,7 +1982,7 @@ void SMPCache::incMissClasses(PAddr addr) {
         isComp = true;
         compMiss.inc();
 
-        infCache.push_back(tag);
+        infCache.insert(tag);
     } else {
         std::vector<PAddr>::iterator cached = std::find(faLRUCache.begin(), faLRUCache.end(), tag);
         if (cached == faLRUCache.end()) {
