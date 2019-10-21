@@ -37,6 +37,7 @@ Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 
 #define k_RANDOM     "RANDOM"
 #define k_LRU        "LRU"
+#define k_NXLRU      "NXLRU"
 
 //
 // Class CacheGeneric, the combinational logic of Cache
@@ -187,7 +188,7 @@ CacheGeneric<State, Addr_t, Energy> *CacheGeneric<State, Addr_t, Energy>::create
             SescConf->isPower2(section, size) &&
             SescConf->isPower2(section, bsize) &&
             SescConf->isPower2(section, assoc) &&
-            SescConf->isInList(section, repl, k_RANDOM, k_LRU)) {
+            SescConf->isInList(section, repl, k_RANDOM, k_LRU, k_NXLRU)) {
 
         cache = create(s, a, b, u, pStr, sk);
     } else {
@@ -230,6 +231,8 @@ CacheAssoc<State, Addr_t, Energy>::CacheAssoc(int32_t size, int32_t assoc, int32
         policy = RANDOM;
     else if (strcasecmp(pStr, k_LRU)    == 0)
         policy = LRU;
+    else if (strcasecmp(pStr, k_NXLRU)    == 0)
+        policy = NXLRU;
     else {
         MSG("Invalid cache policy [%s]",pStr);
         exit(0);
@@ -321,6 +324,7 @@ typename CacheAssoc<State, Addr_t, Energy>::Line
     Line **lineHit=0;
     Line **lineFree=0; // Order of preference, invalid, locked
     Line **setEnd = theSet + assoc;
+    int notLockedIndex = policy == NXLRU ? 2 : 1;
 
     // Start in reverse order so that get the youngest invalid possible,
     // and the oldest isLocked possible (lineFree)
@@ -333,8 +337,9 @@ typename CacheAssoc<State, Addr_t, Energy>::Line
             }
             if (!(*l)->isValid())
                 lineFree = l;
-            else if (lineFree == 0 && !(*l)->isLocked())
+            else if (notLockedIndex != 0 && !(*l)->isLocked())
                 lineFree = l;
+                notLockedIndex--;
 
             // If line is invalid, isLocked must be false
             GI(!(*l)->isValid(), !(*l)->isLocked());
@@ -360,6 +365,10 @@ typename CacheAssoc<State, Addr_t, Energy>::Line
             I(policy == LRU);
             // Get the oldest line possible
             lineFree = setEnd-1;
+        } else if ((policy == NXLRU)) {
+            I(policy == NXLRU);
+            // Get the second oldest line
+            lineFree = setEnd-2;
         }
     } else if(ignoreLocked) {
         if (policy == RANDOM && (*lineFree)->isValid()) {
