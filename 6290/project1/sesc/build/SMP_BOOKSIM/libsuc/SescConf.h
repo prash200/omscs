@@ -1,1 +1,1 @@
-/home/cs6290/sesc/src/libsuc/SescConf.h
+/home/cs6290/omscs/6290/project1/sesc/src/libsuc/SescConf.h

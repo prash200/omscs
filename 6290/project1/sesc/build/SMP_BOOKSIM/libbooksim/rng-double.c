@@ -1,1 +1,1 @@
-/home/cs6290/sesc/src/libbooksim/rng-double.c
+/home/cs6290/omscs/6290/project1/sesc/src/libbooksim/rng-double.c
