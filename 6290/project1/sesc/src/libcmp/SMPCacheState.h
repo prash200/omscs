@@ -52,14 +52,14 @@ protected:
     uint32_t state;
     // JJO
     bool TS;
-    bool wasInvalidated;
+    bool invalidated;
 public:
     SMPCacheState()
         : StateGeneric<>() {
         state = SMP_INVALID;
         // JJO
         TS = false;
-        wasInvalidated = false;
+        invalidated = false;
     }
 
     // BEGIN CacheCore interface
@@ -77,7 +77,7 @@ public:
         GI(isLocked(), (state & SMP_TRANS_BIT) && (state & SMP_INV_BIT));
         state = SMP_INVALID;
         TS = false;
-        wasInvalidated = true;
+        invalidated = true;
     }
 
     bool isLocked() const {
@@ -112,7 +112,7 @@ public:
     }
 
     bool wasInvalidated() const {
-        return wasInvalidated;
+        return invalidated;
     }
 
     uint32_t getInvalidatedTag() const {
