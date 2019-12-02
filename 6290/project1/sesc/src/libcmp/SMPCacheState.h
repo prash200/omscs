@@ -45,6 +45,7 @@ enum SMPState_t {
     SMP_WRITEABLE_BIT = 0x00200000  // has permission to be written
 };
 
+template<class Addr_t=uint32_t>
 class SMPCacheState : public StateGeneric<> {
 
 private:
