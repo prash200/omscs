@@ -32,6 +32,8 @@ Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 
 #include <iomanip>
 
+#include <algorithm>
+
 #if (defined DEBUG_LEAK)
 Time_t Directory::lastClock = 0;
 uint64_t Directory::totCnt = 0;
@@ -85,7 +87,13 @@ SMPCache::SMPCache(SMemorySystem *dms, const char *section, const char *name)
     , readHit("%s:readHit", name)
     , writeHit("%s:writeHit", name)
     , readMiss("%s:readMiss", name)
+    , readCompMiss("%s:readCompMiss", name)
+    , readReplMiss("%s:readReplMiss", name)
+    , readCoheMiss("%s:readCoheMiss", name)
     , writeMiss("%s:writeMiss", name)
+    , writeCompMiss("%s:writeCompMiss", name)
+    , writeReplMiss("%s:writeReplMiss", name)
+    , writeCoheMiss("%s:writeCoheMiss", name)
     , readHalfMiss("%s:readHalfMiss", name)
     , writeHalfMiss("%s:writeHalfMiss", name)
     , writeBack("%s:writeBack", name)
@@ -465,6 +473,7 @@ void SMPCache::doRead(MemRequest *mreq)
     GI(l, !l->isLocked());
 
     readMiss.inc();
+    incMissClasses(l, addr, MemRead);
 
 #if (defined TRACK_MPKI)
     DInst *dinst = mreq->getDInst();
@@ -576,6 +585,7 @@ void SMPCache::doWrite(MemRequest *mreq)
     }
 
     writeMiss.inc();
+    incMissClasses(l, addr, MemWrite);
 
 #ifdef SESC_ENERGY
     wrEnergy[1]->inc();
@@ -1964,3 +1974,19 @@ void SMPCache::pStat() {
 #endif
 }
 #endif
+
+void SMPCache::incMissClasses(Line *l, PAddr addr, MemOperation memOp) {
+    PAddr tag = calcTag(addr);
+
+    if (l && !l->isValid() && l->getInvalidatedTag() == tag) {
+        memOp == MemRead ? readCoheMiss.inc() : writeCoheMiss.inc();
+    }
+
+    if (infCache.find(tag) == infCache.end()) {
+        memOp == MemRead ? readCompMiss.inc() : writeCompMiss.inc();
+
+        infCache.insert(tag);
+    } else {
+        memOp == MemRead ? readReplMiss.inc() : writeReplMiss.inc();
+    }
+}

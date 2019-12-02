@@ -57,10 +57,14 @@ public:
         : StateGeneric<>() {
         state = SMP_INVALID;
         // JJO
-        TS=false;
+        TS = false;
     }
 
     // BEGIN CacheCore interface
+    Addr_t getTag() const {
+        return isValid() ? StateGeneric<>::getTag() : 0;
+    }
+
     bool isValid() const {
         return (state != SMP_INVALID);
     }
@@ -69,7 +73,6 @@ public:
         // cannot invalidate if line is in transient state,
         // except when this is the end of an invalidate chain
         GI(isLocked(), (state & SMP_TRANS_BIT) && (state & SMP_INV_BIT));
-        clearTag();
         state = SMP_INVALID;
         TS = false;
     }
@@ -85,7 +88,6 @@ public:
     }
 
     void changeStateTo(unsigned newstate) {
-
         // not supposed to invalidate through this interface
         I(newstate != SMP_INVALID);
 
@@ -104,6 +106,13 @@ public:
 
     bool canBeWritten() const {
         return (state & SMP_WRITEABLE_BIT);
+    }
+
+    Addr_t getInvalidatedTag() const {
+        // makes sense only on invalid state
+        I(state == SMP_INVALID);
+
+        return StateGeneric<>::getTag();
     }
 };
 

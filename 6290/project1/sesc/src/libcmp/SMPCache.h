@@ -81,11 +81,19 @@ protected:
 
     PendInvTable pendInvTable; // pending invalidate table
 
+    std::unordered_set<PAddr> infCache;
+
     // BEGIN statistics
     GStatsCntr readHit;
     GStatsCntr writeHit;
     GStatsCntr readMiss;
     GStatsCntr writeMiss;
+    GStatsCntr readCompMiss;
+    GStatsCntr readReplMiss;
+    GStatsCntr readCoheMiss;
+    GStatsCntr writeCompMiss;
+    GStatsCntr writeReplMiss;
+    GStatsCntr writeCoheMiss;
     GStatsCntr readHalfMiss;  // attention: these half misses have a != semantic
     GStatsCntr writeHalfMiss; // than Cache.cpp: these counts are included in
     // other counters because MSHR is used differently
@@ -98,6 +106,7 @@ protected:
     GStatsCntr invalDirty;
     GStatsCntr allocDirty;
 
+    void incMissClasses(Line *l, PAddr addr, MemOperation memOp) {
 #ifdef SESC_ENERGY
     static unsigned cacheID;
     unsigned myID;
