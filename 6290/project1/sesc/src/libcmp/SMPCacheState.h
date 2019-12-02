@@ -45,7 +45,6 @@ enum SMPState_t {
     SMP_WRITEABLE_BIT = 0x00200000  // has permission to be written
 };
 
-template<class Addr_t=uint32_t>
 class SMPCacheState : public StateGeneric<> {
 
 private:
@@ -62,7 +61,7 @@ public:
     }
 
     // BEGIN CacheCore interface
-    Addr_t getTag() const {
+    uint32_t getTag() const {
         return isValid() ? StateGeneric<>::getTag() : 0;
     }
 
@@ -109,7 +108,7 @@ public:
         return (state & SMP_WRITEABLE_BIT);
     }
 
-    Addr_t getInvalidatedTag() const {
+    uint32_t getInvalidatedTag() const {
         // makes sense only on invalid state
         I(state == SMP_INVALID);
 
