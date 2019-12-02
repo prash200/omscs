@@ -82,6 +82,7 @@ protected:
     PendInvTable pendInvTable; // pending invalidate table
 
     std::unordered_set<PAddr> infCache;
+    std::unordered_set<PAddr> invalidatedTags;
 
     // BEGIN statistics
     GStatsCntr readHit;
@@ -106,7 +107,7 @@ protected:
     GStatsCntr invalDirty;
     GStatsCntr allocDirty;
 
-    void incMissClasses(Line *l, PAddr addr, MemOperation memOp);
+    void incMissClasses(PAddr addr, MemOperation memOp);
 #ifdef SESC_ENERGY
     static unsigned cacheID;
     unsigned myID;

@@ -473,7 +473,7 @@ void SMPCache::doRead(MemRequest *mreq)
     GI(l, !l->isLocked());
 
     readMiss.inc();
-    incMissClasses(l, addr, MemRead);
+    incMissClasses(addr, MemRead);
 
 #if (defined TRACK_MPKI)
     DInst *dinst = mreq->getDInst();
@@ -585,7 +585,7 @@ void SMPCache::doWrite(MemRequest *mreq)
     }
 
     writeMiss.inc();
-    incMissClasses(l, addr, MemWrite);
+    incMissClasses(addr, MemWrite);
 
 #ifdef SESC_ENERGY
     wrEnergy[1]->inc();
@@ -718,6 +718,7 @@ void SMPCache::realInvalidate(PAddr addr, ushort size, bool writeBack)
                     doWriteBack(addr);
             }
             l->invalidate();
+            invalidatedTags.insert(l->getInvalidatedTag());
         }
         addr += cache->getLineSize();
         size -= cache->getLineSize();
@@ -1567,6 +1568,7 @@ void SMPCache::concludeAccess(MemRequest *mreq)
                        , getSymbolicName(), addr, globalClock);
         
 		l->invalidate();
+        invalidatedTags.insert(l->getInvalidatedTag());
         pendingInv.erase(taddr);
     }
 
@@ -1626,6 +1628,8 @@ void SMPCache::sendInvDirUpdate(PAddr rpl_addr, PAddr new_addr, CallbackBase *cb
         IJ(l);
         IJ(l->getState()==SMP_TRANS_INV);
 
+        if (l->wasInvalidated())
+            invalidatedTags.erase(l->getInvalidatedTag());
         l->setTag(calcTag(new_addr));
         l->changeStateTo(SMP_TRANS_RSV);
 
@@ -1652,6 +1656,8 @@ void SMPCache::processInvDirAck(SMPMemRequest *sreq) {
     IJ(l);
     IJ(l->getState()==SMP_TRANS_INV);
 
+    if (l->wasInvalidated())
+        invalidatedTags.erase(l->getInvalidatedTag());
     l->setTag(calcTag(addr));
     l->changeStateTo(SMP_TRANS_RSV);
 
@@ -1690,6 +1696,8 @@ SMPCache::Line *SMPCache::allocateLine(PAddr addr, CallbackBase *cb,
     if(!l->isValid()) {
         if(canDestroyCB)
             cb->destroy();
+        if (l->wasInvalidated())
+            invalidatedTags.erase(l->getInvalidatedTag());
         l->setTag(cache->calcTag(addr));
         DEBUGPRINT("   [%s] allocated free line for %x at %lld \n",
                    getSymbolicName(), addr , globalClock);
@@ -1727,6 +1735,9 @@ SMPCache::Line *SMPCache::allocateLine(PAddr addr, CallbackBase *cb,
         if(canDestroyCB)
             cb->destroy();
         l->invalidate();
+        invalidatedTags.insert(l->getInvalidatedTag());
+        if (l->wasInvalidated())
+            invalidatedTags.erase(l->getInvalidatedTag());
         l->setTag(cache->calcTag(addr));
         return l;
 #endif
@@ -1792,6 +1803,8 @@ SMPCache::Line *SMPCache::allocateLine(PAddr addr, CallbackBase *cb,
     if(!l->isValid()) {
         if(canDestroyCB)
             cb->destroy();
+        if (l->wasInvalidated())
+            invalidatedTags.erase(l->getInvalidatedTag());
         l->setTag(cache->calcTag(addr));
         return l;
     }
@@ -1805,6 +1818,9 @@ SMPCache::Line *SMPCache::allocateLine(PAddr addr, CallbackBase *cb,
         if(canDestroyCB)
             cb->destroy();
         l->invalidate();
+        invalidatedTags.insert(l->getInvalidatedTag());
+        if (l->wasInvalidated())
+            invalidatedTags.erase(l->getInvalidatedTag());
         l->setTag(cache->calcTag(addr));
         DEBUGPRINT("   [%s] INVALIDATE %x at %lld (for %x)\n",
                    getSymbolicName(), rpl_addr, globalClock, addr);
@@ -1843,6 +1859,8 @@ void SMPCache::doAllocateLine(PAddr addr, PAddr rpl_addr, CallbackBase *cb)
 
         if(l) {
             I(cb);
+            if (l->wasInvalidated())
+                invalidatedTags.erase(l->getInvalidatedTag());
             l->setTag(calcTag(addr));
             l->changeStateTo(SMP_TRANS_RSV);
             cb->call();
@@ -1862,6 +1880,8 @@ void SMPCache::doAllocateLine(PAddr addr, PAddr rpl_addr, CallbackBase *cb)
     }
 
     I(cb);
+    if (l->wasInvalidated())
+        invalidatedTags.erase(l->getInvalidatedTag());
     l->setTag(cache->calcTag(addr));
     l->changeStateTo(SMP_TRANS_RSV);
     cb->call();
@@ -1975,10 +1995,10 @@ void SMPCache::pStat() {
 }
 #endif
 
-void SMPCache::incMissClasses(Line *l, PAddr addr, MemOperation memOp) {
+void SMPCache::incMissClasses(PAddr addr, MemOperation memOp) {
     PAddr tag = calcTag(addr);
 
-    if (l && !l->isValid() && l->getInvalidatedTag() == tag) {
+    if (invalidatedTags.find(tag) != invalidatedTags.end()) {
         memOp == MemRead ? readCoheMiss.inc() : writeCoheMiss.inc();
     }
 
