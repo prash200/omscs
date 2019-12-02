@@ -106,7 +106,7 @@ protected:
     GStatsCntr invalDirty;
     GStatsCntr allocDirty;
 
-    void incMissClasses(Line *l, PAddr addr, MemOperation memOp) {
+    void incMissClasses(Line *l, PAddr addr, MemOperation memOp);
 #ifdef SESC_ENERGY
     static unsigned cacheID;
     unsigned myID;
