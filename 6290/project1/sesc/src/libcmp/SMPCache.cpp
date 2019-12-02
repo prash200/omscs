@@ -2000,9 +2000,7 @@ void SMPCache::incMissClasses(PAddr addr, MemOperation memOp) {
 
     if (invalidatedTags.find(tag) != invalidatedTags.end()) {
         memOp == MemRead ? readCoheMiss.inc() : writeCoheMiss.inc();
-    }
-
-    if (infCache.find(tag) == infCache.end()) {
+    } else if (infCache.find(tag) == infCache.end()) {
         memOp == MemRead ? readCompMiss.inc() : writeCompMiss.inc();
 
         infCache.insert(tag);
